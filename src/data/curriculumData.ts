@@ -1,0 +1,21 @@
+import { Board, Grade, Subject, Chapter, Topic, Lesson, Question, ReadingStory, VocabularyWord, SubjectCategory, StreamMaster, SubjectMapping } from '../types';
+import { BOARDS, GRADES, ALL_SUBJECTS, MASTER_CATEGORIES, MASTER_STREAMS, DEFAULT_SUBJECT_MAPPINGS } from './subjectsData';
+import { ALL_CHAPTERS } from './chaptersData';
+import { ALL_TOPICS } from './topicsData';
+import { ALL_LESSONS } from './lessonsData';
+import { ALL_PRESEEDED_QUESTIONS, getIntelligentQuestionsForChapter } from './questionsData';
+import { ALL_STORIES } from './storiesData';
+import { ALL_VOCABULARY } from './vocabData';
+
+export { BOARDS, GRADES, MASTER_CATEGORIES, MASTER_STREAMS, DEFAULT_SUBJECT_MAPPINGS };
+export const INITIAL_CATEGORIES: SubjectCategory[] = MASTER_CATEGORIES;
+export const INITIAL_STREAMS: StreamMaster[] = MASTER_STREAMS;
+export const INITIAL_SUBJECT_MAPPINGS: SubjectMapping[] = DEFAULT_SUBJECT_MAPPINGS;
+export const INITIAL_SUBJECTS: Subject[] = ALL_SUBJECTS;
+export const INITIAL_CHAPTERS: Chapter[] = ALL_CHAPTERS;
+export const INITIAL_TOPICS: Topic[] = ALL_TOPICS;
+export const INITIAL_LESSONS: Lesson[] = ALL_LESSONS;
+export const INITIAL_QUESTIONS: Question[] = ALL_PRESEEDED_QUESTIONS;
+export const INITIAL_STORIES: ReadingStory[] = ALL_STORIES;
+export const INITIAL_VOCABULARY: VocabularyWord[] = ALL_VOCABULARY;
+export { getIntelligentQuestionsForChapter };

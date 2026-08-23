@@ -1,0 +1,7 @@
+{
+  "name": "DESHNA AI Learning Hub",
+  "description": "Personalized AI-powered learning companion for students from Grade 1 to Grade 11 across CBSE, ICSE, and State Boards with interactive quizzes, reading coach, and adaptive learning paths.",
+  "requestFramePermissions": ["microphone", "camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
