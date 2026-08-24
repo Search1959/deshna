@@ -69,12 +69,13 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
             <button
               id="header-mobile-menu-btn"
               onClick={onOpenMobileMenu}
-              className="xl:hidden p-1.5 sm:p-2 rounded-xl text-slate-700 hover:bg-amber-100/80 transition min-w-[38px] min-h-[38px] flex items-center justify-center -ml-1 shrink-0"
+              className="xl:hidden p-1.5 sm:p-2 rounded-xl text-slate-700 hover:bg-amber-100/80 transition min-w-[38px] min-h-[38px] flex items-center justify-center shrink-0"
               aria-label="Open Mobile Menu"
             >
               <Menu className="w-5 h-5 sm:w-6 sm:h-6 text-amber-900" />
             </button>
 
+            {/* Web App Logo & Branding at beginning of header */}
             <button
               id="brand-logo-btn"
               onClick={() => {
@@ -92,13 +93,13 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
               className="flex items-center space-x-2 sm:space-x-3 text-left group cursor-pointer min-w-0"
               title="Return to Home Page"
             >
-              <div className="w-9 h-9 sm:w-12 sm:h-12 bg-[#F59E0B] rounded-xl sm:rounded-2xl flex items-center justify-center text-white text-lg sm:text-2xl font-black shadow-sm group-hover:scale-105 transition-transform shrink-0">
+              <div className="w-8 h-8 sm:w-12 sm:h-12 bg-[#F59E0B] rounded-xl sm:rounded-2xl flex items-center justify-center text-white text-base sm:text-2xl font-black shadow-sm group-hover:scale-105 transition-transform shrink-0">
                 <span>A</span>
               </div>
               <div className="min-w-0">
-                <span className="text-base sm:text-2xl font-black tracking-tight text-[#1F2937] flex items-center gap-1 sm:gap-2 leading-tight">
-                  <span>DESHNA</span>
-                  <span className="text-[9px] sm:text-[11px] px-1.5 sm:px-2.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#D97706] font-black border-2 border-[#FDE68A] shrink-0">
+                <span className="text-sm sm:text-2xl font-black tracking-tight text-[#1F2937] flex items-center gap-1 sm:gap-2 leading-tight">
+                  <span className="truncate">DESHNA</span>
+                  <span className="text-[8px] sm:text-[11px] px-1 sm:px-2.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#D97706] font-black border border-[#FDE68A] sm:border-2 shrink-0">
                     AI HUB
                   </span>
                 </span>
@@ -248,9 +249,9 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
               {isSpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
             </button>
 
-            {/* Student Switcher (If in student role) */}
+            {/* Student Switcher (If in student role - desktop / tablet) */}
             {currentRole === 'student' && (
-              <div className="relative">
+              <div className="relative hidden sm:block">
                 <button
                   id="student-profile-btn"
                   onClick={() => setIsStudentMenuOpen(!isStudentMenuOpen)}
@@ -309,8 +310,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
               </div>
             )}
 
-            {/* Role Switcher Menu */}
-            <div className="relative">
+            {/* Role Switcher Menu (Hidden on mobile, accessible inside mobile drawer menu) */}
+            <div className="relative hidden md:block">
               <button
                 id="role-switcher-btn"
                 onClick={() => setIsRoleMenuOpen(!isRoleMenuOpen)}
