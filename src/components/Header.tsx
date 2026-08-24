@@ -63,18 +63,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
     <header className="sticky top-0 z-40 w-full bg-white border-b-4 border-[#FBBF24] shadow-md">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20">
-          {/* Left: Brand Logo & Tagline */}
-          <div className="flex items-center space-x-1.5 sm:space-x-3 min-w-0">
-            {/* Mobile Hamburger Drawer Trigger */}
-            <button
-              id="header-mobile-menu-btn"
-              onClick={onOpenMobileMenu}
-              className="xl:hidden p-1.5 sm:p-2 rounded-xl text-slate-700 hover:bg-amber-100/80 transition min-w-[38px] min-h-[38px] flex items-center justify-center shrink-0"
-              aria-label="Open Mobile Menu"
-            >
-              <Menu className="w-5 h-5 sm:w-6 sm:h-6 text-amber-900" />
-            </button>
-
+          {/* Left: Brand Logo & Tagline at the VERY BEGINNING of header on all screens (including mobile) */}
+          <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
             {/* Web App Logo & Branding at beginning of header */}
             <button
               id="brand-logo-btn"
@@ -93,7 +83,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
               className="flex items-center space-x-2 sm:space-x-3 text-left group cursor-pointer min-w-0"
               title="Return to Home Page"
             >
-              <div className="w-8 h-8 sm:w-12 sm:h-12 bg-[#F59E0B] rounded-xl sm:rounded-2xl flex items-center justify-center text-white text-base sm:text-2xl font-black shadow-sm group-hover:scale-105 transition-transform shrink-0">
+              <div className="w-8 h-8 sm:w-11 sm:h-11 bg-[#F59E0B] rounded-xl sm:rounded-2xl flex items-center justify-center text-white text-base sm:text-2xl font-black shadow-sm group-hover:scale-105 transition-transform shrink-0">
                 <span>A</span>
               </div>
               <div className="min-w-0">
@@ -249,13 +239,14 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
               {isSpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
             </button>
 
-            {/* Student Switcher (If in student role - desktop / tablet) */}
+            {/* Student Switcher (If in student role - desktop only, strictly hidden on mobile) */}
             {currentRole === 'student' && (
-              <div className="relative hidden sm:block">
+              <div className="relative hidden lg:block">
                 <button
                   id="student-profile-btn"
                   onClick={() => setIsStudentMenuOpen(!isStudentMenuOpen)}
                   className="w-9 h-9 sm:w-10 sm:h-10 bg-[#3B82F6] border-2 border-[#2563EB] rounded-full overflow-hidden flex items-center justify-center text-white font-bold shadow-xs hover:ring-2 hover:ring-[#3B82F6] transition"
+                  title="Switch Active Learner"
                 >
                   <img
                     src={currentStudent.avatar}
@@ -309,6 +300,17 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
                 )}
               </div>
             )}
+
+            {/* Mobile Hamburger Drawer Trigger placed cleanly on right side for mobile/tablet */}
+            <button
+              id="header-mobile-menu-btn"
+              onClick={onOpenMobileMenu}
+              className="xl:hidden p-1.5 sm:p-2 rounded-xl text-slate-700 hover:bg-amber-100/80 transition min-w-[38px] min-h-[38px] flex items-center justify-center shrink-0 border border-amber-200"
+              aria-label="Open Mobile Menu"
+              title="Open Navigation Menu"
+            >
+              <Menu className="w-5 h-5 sm:w-6 sm:h-6 text-amber-900" />
+            </button>
 
             {/* Role Switcher Menu (Hidden on mobile, accessible inside mobile drawer menu) */}
             <div className="relative hidden md:block">

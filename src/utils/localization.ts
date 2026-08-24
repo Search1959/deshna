@@ -1,5 +1,6 @@
 import { Subject, Chapter, Topic, Question, Lesson } from '../types';
 import { INDIAN_LANGUAGES } from '../data/indianLanguages';
+import { localizeQuestionFn } from './questionTranslations';
 
 // Comprehensive UI Translations for all main sections of the website
 export const COMPREHENSIVE_UI_TRANSLATIONS: Record<string, Record<string, string>> = {
@@ -1561,51 +1562,83 @@ export function localizeTopic(topic: Topic, lang: string = 'en'): Topic {
 }
 
 /**
- * Localize a Question: prompt, options, explanation, hints
+ * Localize a Lesson: title, sections (title, content, analogy, example), and key takeaways
  */
-export function localizeQuestion(question: Question, lang: string = 'en'): Question {
-  if (lang === 'en' || !question) return question;
+export function localizeLesson(lesson: Lesson | undefined, lang: string = 'en'): Lesson | undefined {
+  if (!lesson || lang === 'en') return lesson;
 
-  let localizedText = question.text;
-  for (const pattern of QUESTION_PATTERNS) {
-    if (pattern.matchRegex.test(question.text) && pattern.translations[lang]) {
-      localizedText = question.text.replace(pattern.matchRegex, pattern.translations[lang]);
-      break;
-    }
-  }
+  const locSections = lesson.sections.map((sec) => {
+    let title = sec.title;
+    let content = sec.content;
+    let analogy = sec.analogy;
+    let example = sec.example;
 
-  // Localize options
-  const localizedOptions = question.options?.map((opt) => {
-    if (OPTION_TRANSLATIONS[opt]?.[lang]) {
-      return OPTION_TRANSLATIONS[opt][lang];
+    if (lang === 'hi') {
+      title = title.replace(/^(\d+\.\s*)What is (.*?)\?/, '$1$2 क्या है?');
+      title = title.replace(/^(\d+\.\s*)Real-World Applications of (.*)/, '$1$2 के वास्तविक जीवन में उपयोग');
+      title = title.replace(/^(\d+\.\s*)How to Master (.*)/, '$1$2 में कैसे महारत हासिल करें');
+      
+      content = content.replace(/Welcome! In this lesson from (.*?) \((.*?)\), we will learn about (.*?) in simple words\./g, 
+        'स्वागत है! $1 ($2) के इस पाठ में, हम सरल शब्दों में $3 के बारे में सीखेंगे।');
+      content = content.replace(/You will understand what it means, why it matters, and how to remember it easily without any confusion\./g,
+        'आप समझेंगे कि इसका क्या अर्थ है, यह क्यों महत्वपूर्ण है, और इसे बिना किसी भ्रम के आसानी से कैसे याद रखें।');
+      content = content.replace(/Key Principles to Remember:/g, 'याद रखने योग्य मुख्य सिद्धांत:');
+      content = content.replace(/1\. Break down complex problems into smaller, manageable steps\./g, '1. जटिल समस्याओं को छोटे, प्रबंधनीय चरणों में विभाजित करें।');
+      content = content.replace(/2\. Look for core patterns and connect them to foundational concepts\./g, '2. मुख्य पैटर्न पहचानें और उन्हें बुनियादी अवधारणाओं से जोड़ें।');
+      content = content.replace(/3\. Verify your reasoning through logical checks and practice problems\./g, '3. तार्किक जांच और अभ्यास प्रश्नों के माध्यम से अपने तर्क की पुष्टि करें।');
+
+      if (analogy) {
+        analogy = analogy.replace(/Think of (.*?) like (.*?)\./g, '$1 को $2 की तरह समझें।');
+      }
+    } else if (lang === 'bn') {
+      title = title.replace(/^(\d+\.\s*)What is (.*?)\?/, '$1$2 কী?');
+      title = title.replace(/^(\d+\.\s*)Real-World Applications of (.*)/, '$1$2-এর বাস্তব প্রয়োগ');
+      content = content.replace(/Welcome! In this lesson from (.*?) \((.*?)\), we will learn about (.*?) in simple words\./g, 
+        'স্বাগতম! $1 ($2)-এর এই পাঠে আমরা সহজ কথায় $3 সম্পর্কে জানব।');
     }
-    return opt;
+
+    return {
+      ...sec,
+      title,
+      content,
+      analogy,
+      example,
+    };
   });
 
-  // Localize explanation
-  let localizedExplanation = question.explanation;
-  if (lang === 'bn' && question.explanation) {
-    if (question.explanation.includes('inside')) {
-      localizedExplanation = 'কুকুরছানাটি তার ঘরের মধ্যে সম্পূর্ণ সুরক্ষিত রয়েছে, অর্থাৎ এটি "ভিতরে" (Inside) অবস্থিত।';
-    } else if (question.explanation.includes('rolls')) {
-      localizedExplanation = 'ফুটবলের মসৃণ ও গোলাকার পৃষ্ঠতল থাকে যা মেঝেতে বাধাহীনভাবে গড়ায়।';
-    } else if (question.explanation.includes('Counting one by one')) {
-      localizedExplanation = 'এক এক করে গণনা করলে মোট ৫টি তারা পাওয়া যায়।';
-    }
-  } else if (lang === 'hi' && question.explanation) {
-    if (question.explanation.includes('inside')) {
-      localizedExplanation = 'पिल्ला अपने घर के भीतर सुरक्षित है, जिसका अर्थ है कि वह "अंदर" (Inside) है।';
-    } else if (question.explanation.includes('rolls')) {
-      localizedExplanation = 'फुटबॉल की सतह चिकनी और गोल होती है, इसलिए यह आसानी से लुढ़कती है।';
-    } else if (question.explanation.includes('Counting one by one')) {
-      localizedExplanation = 'एक-एक करके गिनने पर कुल ५ तारे मिलते हैं।';
-    }
+  let locTakeaways = lesson.keyTakeaways;
+  if (lang === 'hi' && locTakeaways) {
+    locTakeaways = locTakeaways.map((item) => {
+      let t = item;
+      t = t.replace(/Understand the foundational definitions and why they are essential\./g, 'बुनियादी परिभाषाओं और उनके महत्व को अच्छी तरह समझें।');
+      t = t.replace(/Practice step-by-step applications to build speed and accuracy\./g, 'गति और सटीकता बढ़ाने के लिए चरण-दर-चरण अभ्यास करें।');
+      t = t.replace(/Review common mistakes and self-correct during problem solving\./g, 'समस्या समाधान के दौरान सामान्य गलतियों की समीक्षा करें और आत्म-सुधार करें।');
+      return t;
+    });
+  }
+
+  let locTitle = lesson.title;
+  if (lang === 'hi') {
+    locTitle = locTitle.replace(/(.*?) - Easy Learning Guide/g, '$1 - आसान अध्ययन मार्गदर्शिका');
+  } else if (lang === 'bn') {
+    locTitle = locTitle.replace(/(.*?) - Easy Learning Guide/g, '$1 - সহজ শিক্ষার নির্দেশিকা');
   }
 
   return {
-    ...question,
-    text: localizedText,
-    options: localizedOptions,
-    explanation: localizedExplanation,
+    ...lesson,
+    title: locTitle,
+    sections: locSections,
+    keyTakeaways: locTakeaways,
   };
 }
+
+/**
+ * Localize a Question: prompt, options, explanation, hints
+ * Using full multi-lingual curriculum question translation engine
+ */
+export function localizeQuestion(question: Question, lang: string = 'en'): Question {
+  return localizeQuestionFn(question, lang);
+}
+
+export { localizeQuestionFn };
+

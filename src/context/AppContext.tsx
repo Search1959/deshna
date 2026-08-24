@@ -58,6 +58,7 @@ import {
   localizeSubject as localizeSubjectFn,
   localizeChapter as localizeChapterFn,
   localizeTopic as localizeTopicFn,
+  localizeLesson as localizeLessonFn,
   localizeQuestion as localizeQuestionFn,
 } from '../utils/localization';
 
@@ -223,6 +224,7 @@ interface AppContextType {
   localizeSubject: (subject: Subject) => Subject;
   localizeChapter: (chapter: Chapter) => Chapter;
   localizeTopic: (topic: Topic) => Topic;
+  localizeLesson: (lesson: Lesson | undefined) => Lesson | undefined;
   localizeQuestion: (question: Question) => Question;
 
   // Speech Helper
@@ -312,6 +314,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const localizeTopic = (topic: Topic): Topic => {
     return localizeTopicFn(topic, selectedLanguage);
+  };
+
+  const localizeLesson = (lesson: Lesson | undefined): Lesson | undefined => {
+    return localizeLessonFn(lesson, selectedLanguage);
   };
 
   const localizeQuestion = (question: Question): Question => {
@@ -1433,6 +1439,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         localizeSubject,
         localizeChapter,
         localizeTopic,
+        localizeLesson,
         localizeQuestion,
         speakText,
         stopSpeaking,

@@ -38,6 +38,7 @@ export const ExamPrepView: React.FC = () => {
     openAITutorWithContext,
     t,
     localizeSubject,
+    localizeQuestion,
   } = useApp();
 
   const [selectedGradeFilter, setSelectedGradeFilter] = useState<number>(() => selectedGradeId || currentStudent.gradeId || 7);
@@ -166,7 +167,8 @@ export const ExamPrepView: React.FC = () => {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  const currentQ = testQuestions[currentIdx];
+  const currentQRaw = testQuestions[currentIdx];
+  const currentQ = currentQRaw ? localizeQuestion(currentQRaw) : currentQRaw;
   const answeredCount = Object.keys(selectedAnswers).length;
   const unansweredCount = testQuestions.length - answeredCount;
 
@@ -697,11 +699,12 @@ export const ExamPrepView: React.FC = () => {
                 if (resultFilter === 'flagged') return flaggedQuestions[idx];
                 return true;
               })
-              .map((q, idx) => {
-                const originalIdx = testQuestions.findIndex((tq) => tq.id === q.id || tq.text === q.text);
+              .map((rawQ, idx) => {
+                const q = localizeQuestion(rawQ);
+                const originalIdx = testQuestions.findIndex((tq) => tq.id === rawQ.id || tq.text === rawQ.text);
                 const itemNumber = originalIdx !== -1 ? originalIdx + 1 : idx + 1;
                 const userAns = selectedAnswers[originalIdx !== -1 ? originalIdx : idx];
-                const correctIdx = getCorrectOptionIndex(q);
+                const correctIdx = getCorrectOptionIndex(rawQ);
                 const isAnswered = userAns !== undefined;
                 const isCorrect = isAnswered && userAns === correctIdx;
 

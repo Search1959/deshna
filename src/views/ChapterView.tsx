@@ -42,6 +42,7 @@ export const ChapterView: React.FC = () => {
     localizeSubject,
     localizeChapter,
     localizeTopic,
+    localizeLesson,
     localizeQuestion,
   } = useApp();
 
@@ -72,7 +73,8 @@ export const ChapterView: React.FC = () => {
   const chapterTopics = (rawChapterTopics.length > 0 ? rawChapterTopics : [{ id: 'top-fallback', chapterId: rawChapter?.id || 'ch', title: 'Core Concepts & Principles', summary: 'Foundational ideas and applications.', difficulty: 'easy' } as any]).map(localizeTopic);
   const currentTopic = chapterTopics[selectedTopicIndex] || chapterTopics[0];
   const currentLesson = lessons.find((l) => l.topicId === currentTopic?.id);
-  const resolvedLesson = currentLesson || getIntelligentLessonForTopic(currentTopic, currentChapter, currentSubj);
+  const rawLesson = currentLesson || getIntelligentLessonForTopic(currentTopic, currentChapter, currentSubj);
+  const resolvedLesson = localizeLesson(rawLesson);
 
   // Resolve questions: preseeded, extra generated, or fallback intelligent generator
   const baseQuestions = questions.filter((q) => q.chapterId === rawChapter?.id);
