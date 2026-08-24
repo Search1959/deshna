@@ -459,62 +459,160 @@ Return JSON with:
   }
 });
 
-// 6. AI Adaptive Question Generator (for CMS or Practice)
-app.post("/api/ai/generate-question", async (req, res) => {
+// 6. AI Adaptive Question Generator (for CMS or Practice) - Optimized for Ultra-Fast Response
+app.post(["/api/ai/generate-question", "/api/ai/generate-questions"], async (req, res) => {
   try {
-    const { grade, board, subject, chapter, topic, difficulty, questionType } = req.body;
+    const { grade, board, subject, chapter, topic, difficulty, questionType, count } = req.body;
     const ai = getAIClient();
 
+    const fallbackQuestion = {
+      text: `In ${subject || 'Curriculum'} (${topic || chapter || 'Key Concepts'}), which statement represents the fundamental principle accurately?`,
+      options: [
+        "Applying verified step-by-step conceptual rules and formulas",
+        "Assuming values randomly without identifying given conditions",
+        "Disregarding core units and mathematical properties",
+        "Memorizing answers without understanding the underlying method"
+      ],
+      correctAnswer: 0,
+      correctOptionIndex: 0,
+      explanation: `Mastery in ${subject || 'this subject'} is achieved by adhering to foundational principles and checking intermediate steps.`,
+      hints: ["Focus on the primary definition and verified rules taught in this unit."],
+      stepByStepSolution: [
+        "Step 1: Identify given variables and core questions.",
+        "Step 2: Apply the governing concept or formula.",
+        "Step 3: Verify the selected option satisfies all conditions."
+      ]
+    };
+
     if (!ai) {
-      const fallbackQuestion = {
-        text: `In ${subject} (${topic || chapter}), which of the following best demonstrates the core principle?`,
-        options: [
-          "Option A: Applying equal and opposite force",
-          "Option B: Reducing the surface contact area",
-          "Option C: Increasing potential thermal resistance",
-          "Option D: Maintaining constant thermodynamic equilibrium"
-        ],
-        correctAnswer: "Option B: Reducing the surface contact area",
-        explanation: `When area decreases under constant force, the pressure exerted increases proportionally according to P = F/A.`,
-        hints: ["Recall how high heels exert more pressure on soil than flat snowshoes."],
-        stepByStepSolution: [
-          "Step 1: Recall the definition of the concept.",
-          "Step 2: Identify the relationship between the two key variables.",
-          "Step 3: Select the option that aligns with the established physical law."
-        ]
-      };
-      return res.json({ data: fallbackQuestion, source: "fallback" });
+      return res.json({
+        data: fallbackQuestion,
+        question: fallbackQuestion.text,
+        text: fallbackQuestion.text,
+        options: fallbackQuestion.options,
+        correctAnswer: fallbackQuestion.correctAnswer,
+        correctOptionIndex: fallbackQuestion.correctOptionIndex,
+        explanation: fallbackQuestion.explanation,
+        hints: fallbackQuestion.hints,
+        questions: [fallbackQuestion],
+        source: "fallback",
+      });
     }
 
-    const prompt = `Generate a high quality educational question for:
-Grade: ${grade}, Board: ${board || "CBSE"}, Subject: ${subject}
-Chapter: ${chapter}, Topic: ${topic}
-Difficulty: ${difficulty || "medium"} ('easy'|'medium'|'hard'|'advanced')
-Question Type: ${questionType || "mcq"} ('mcq'|'multiple_select'|'true_false'|'fill_blank'|'short_answer'|'numerical'|'reasoning'|'case_study')
+    const numQuestions = Math.min(Math.max(1, count || 1), 5);
+    const prompt = numQuestions === 1
+      ? `Generate 1 clear, engaging educational multiple choice question for:
+Grade: ${grade || 3}, Board: ${board || "CBSE"}, Subject: ${subject || "General"}
+Chapter: ${chapter || "Core Principles"}, Topic: ${topic || "Fundamentals"}
+Difficulty: ${difficulty || "medium"}
+Question Type: ${questionType || "mcq"}
 
-Return JSON format:
+Return ONLY JSON object:
 {
-  "text": "The full question text",
-  "options": ["Option A", "Option B", "Option C", "Option D"], // if mcq
-  "correctAnswer": "Option A" or "exact answer text",
-  "explanation": "Detailed pedagogical explanation of why this is correct",
-  "hints": ["Hint 1", "Hint 2"],
-  "stepByStepSolution": ["Step 1...", "Step 2...", "Step 3..."]
+  "text": "Clear question text",
+  "options": ["Option A", "Option B", "Option C", "Option D"],
+  "correctOptionIndex": 0,
+  "correctAnswer": 0,
+  "explanation": "Clear explanation of the answer",
+  "hints": ["Helpful hint"]
+}`
+      : `Generate ${numQuestions} educational multiple choice questions for:
+Grade: ${grade || 3}, Board: ${board || "CBSE"}, Subject: ${subject || "General"}
+Chapter: ${chapter || "Core Principles"}
+Difficulty: ${difficulty || "medium"}
+
+Return ONLY JSON object:
+{
+  "questions": [
+    {
+      "text": "Question text",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctOptionIndex": 0,
+      "correctAnswer": 0,
+      "explanation": "Explanation",
+      "hint": "Hint"
+    }
+  ]
 }`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.7-flash",
+    // Fast generation promise with 3-second timeout fallback for maximum speed
+    const generatePromise = ai.models.generateContent({
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
       },
     });
 
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Timeout")), 2800)
+    );
+
+    const response = await Promise.race([generatePromise, timeoutPromise]);
     const parsed = JSON.parse(response.text || "{}");
-    return res.json({ data: parsed, source: "gemini" });
+
+    const singleQ = parsed.questions ? parsed.questions[0] : parsed;
+    const qText = singleQ?.text || singleQ?.prompt || singleQ?.question || fallbackQuestion.text;
+    const qOptions = Array.isArray(singleQ?.options) && singleQ.options.length >= 2 ? singleQ.options : fallbackQuestion.options;
+    const qCorrectIdx = typeof singleQ?.correctOptionIndex === 'number' ? singleQ.correctOptionIndex : (typeof singleQ?.correctAnswer === 'number' ? singleQ.correctAnswer : 0);
+
+    return res.json({
+      data: {
+        text: qText,
+        options: qOptions,
+        correctAnswer: qCorrectIdx,
+        correctOptionIndex: qCorrectIdx,
+        explanation: singleQ?.explanation || fallbackQuestion.explanation,
+        hints: singleQ?.hints || (singleQ?.hint ? [singleQ.hint] : fallbackQuestion.hints),
+      },
+      question: qText,
+      text: qText,
+      options: qOptions,
+      correctAnswer: qCorrectIdx,
+      correctOptionIndex: qCorrectIdx,
+      explanation: singleQ?.explanation || fallbackQuestion.explanation,
+      hints: singleQ?.hints || (singleQ?.hint ? [singleQ.hint] : fallbackQuestion.hints),
+      questions: parsed.questions || [
+        {
+          text: qText,
+          options: qOptions,
+          correctOptionIndex: qCorrectIdx,
+          correctAnswer: qCorrectIdx,
+          explanation: singleQ?.explanation || fallbackQuestion.explanation,
+          hint: singleQ?.hint || singleQ?.hints?.[0] || fallbackQuestion.hints[0],
+        }
+      ],
+      source: "gemini",
+    });
   } catch (error: any) {
-    console.error("Generate question error:", error);
-    return res.status(500).json({ error: error.message });
+    console.error("Generate question error or timeout, providing fast instant fallback:", error?.message);
+    const { subject, chapter, topic } = req.body;
+    const fastFallback = {
+      text: `In ${subject || 'this chapter'} (${topic || chapter || 'Key Concepts'}), what is the essential rule to solve problems accurately?`,
+      options: [
+        "Understand the given values, check the standard formula, and verify step-by-step",
+        "Guess the result without checking calculation steps",
+        "Combine columns without following place value rules",
+        "Skip unit conversions and initial question constraints"
+      ],
+      correctAnswer: 0,
+      correctOptionIndex: 0,
+      explanation: "Following structured mathematical and scientific procedures guarantees consistent accuracy.",
+      hints: ["Recall the foundational rules and step-by-step methods."],
+    };
+
+    return res.json({
+      data: fastFallback,
+      question: fastFallback.text,
+      text: fastFallback.text,
+      options: fastFallback.options,
+      correctAnswer: 0,
+      correctOptionIndex: 0,
+      explanation: fastFallback.explanation,
+      hints: fastFallback.hints,
+      questions: [fastFallback],
+      source: "fast_fallback",
+    });
   }
 });
 

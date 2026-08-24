@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { getIntelligentQuestionsForChapter } from '../data/curriculumData';
 import { getIntelligentLessonForTopic } from '../data/curriculumGenerator';
+import { generateInstantChapterQuestion } from '../utils/dynamicQuestionBuilder';
 import { Question } from '../types';
 import {
   BookOpen,
@@ -18,6 +19,7 @@ import {
   Lightbulb,
   Check,
   RefreshCw,
+  Plus,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 

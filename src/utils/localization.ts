@@ -1,6 +1,7 @@
 import { Subject, Chapter, Topic, Question, Lesson } from '../types';
 import { INDIAN_LANGUAGES } from '../data/indianLanguages';
 import { localizeQuestionFn } from './questionTranslations';
+import { localizeChapterFn, localizeTopicFn } from './chapterTranslations';
 
 // Comprehensive UI Translations for all main sections of the website
 export const COMPREHENSIVE_UI_TRANSLATIONS: Record<string, Record<string, string>> = {
@@ -14,6 +15,19 @@ export const COMPREHENSIVE_UI_TRANSLATIONS: Record<string, Record<string, string
     revision: 'Revision',
     exam_prep: 'Exam Prep',
     ask_ai_tutor: 'Ask AI Tutor',
+    ask_ai: 'Ask AI',
+    study_now: 'Study [Learn]',
+    practice: 'Practice',
+    mastery: 'Mastery',
+    min: 'mins',
+    mins: 'mins',
+    overall_mastery: 'Subject Mastery Level',
+    in_curriculum: 'in this curriculum',
+    curriculum_chapters: 'Curriculum Chapters',
+    chapters: 'Chapters',
+    dashboard: 'Dashboard',
+    catalog: 'Catalog',
+    mock_tests: 'Mock Test',
     login_onboard: '+ Login / Onboard',
     switch_language: 'Select Indian Language',
     languages_label: 'Languages',
@@ -146,6 +160,19 @@ export const COMPREHENSIVE_UI_TRANSLATIONS: Record<string, Record<string, string
     revision: 'পুনরাবৃত্তি',
     exam_prep: 'পরীক্ষা প্রস্তুতি',
     ask_ai_tutor: 'AI শিক্ষককে জিজ্ঞাসা করুন',
+    ask_ai: 'AI শিক্ষক',
+    study_now: 'অধ্যয়ন করুন [শিখুন]',
+    practice: 'অনুশীলন',
+    mastery: 'দক্ষতা',
+    min: 'মিনিট',
+    mins: 'মিনিট',
+    overall_mastery: 'বিষয় দক্ষতা স্তর',
+    in_curriculum: 'এই পাঠ্যক্রমে',
+    curriculum_chapters: 'পাঠ্যক্রম অধ্যায়',
+    chapters: 'অধ্যায়',
+    dashboard: 'ড্যাশবোর্ড',
+    catalog: 'ক্যাটালগ',
+    mock_tests: 'মক টেস্ট',
     login_onboard: '+ লগইন / যোগ দিন',
     switch_language: 'ভারতীয় ভাষা নির্বাচন করুন',
     languages_label: 'ভাষা',
@@ -278,6 +305,19 @@ export const COMPREHENSIVE_UI_TRANSLATIONS: Record<string, Record<string, string
     revision: 'रिवीजन',
     exam_prep: 'परीक्षा तैयारी',
     ask_ai_tutor: 'AI ट्यूटर से पूछें',
+    ask_ai: 'AI से पूछें',
+    study_now: 'अध्ययन करें [सीखें]',
+    practice: 'अभ्यास',
+    mastery: 'दक्षता',
+    min: 'मिनट',
+    mins: 'मिनट',
+    overall_mastery: 'विषय दक्षता स्तर',
+    in_curriculum: 'इस पाठ्यक्रम में',
+    curriculum_chapters: 'पाठ्यक्रम अध्याय',
+    chapters: 'अध्याय',
+    dashboard: 'डैशबोर्ड',
+    catalog: 'कैटलॉग',
+    mock_tests: 'मॉक टेस्ट',
     login_onboard: '+ लॉगिन / जुड़ें',
     switch_language: 'भारतीय भाषा चुनें',
     languages_label: 'भाषाएं',
@@ -1539,26 +1579,14 @@ export function localizeSubject(subject: Subject, lang: string = 'en'): Subject 
  * Localize a Chapter title and description
  */
 export function localizeChapter(chapter: Chapter, lang: string = 'en'): Chapter {
-  if (lang === 'en' || !chapter) return chapter;
-
-  const localizedTitle = CHAPTER_TOPIC_TRANSLATIONS[chapter.title]?.[lang] || chapter.title;
-  return {
-    ...chapter,
-    title: localizedTitle,
-  };
+  return localizeChapterFn(chapter, lang);
 }
 
 /**
  * Localize a Topic title and summary
  */
 export function localizeTopic(topic: Topic, lang: string = 'en'): Topic {
-  if (lang === 'en' || !topic) return topic;
-
-  const localizedTitle = CHAPTER_TOPIC_TRANSLATIONS[topic.title]?.[lang] || topic.title;
-  return {
-    ...topic,
-    title: localizedTitle,
-  };
+  return localizeTopicFn(topic, lang);
 }
 
 /**
@@ -1640,5 +1668,5 @@ export function localizeQuestion(question: Question, lang: string = 'en'): Quest
   return localizeQuestionFn(question, lang);
 }
 
-export { localizeQuestionFn };
+export { localizeQuestionFn, localizeChapterFn, localizeTopicFn };
 

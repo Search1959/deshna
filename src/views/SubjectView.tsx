@@ -104,7 +104,7 @@ export const SubjectView: React.FC = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border-3 border-[#FBBF24] shadow-md">
         <div className="flex items-center space-x-2 text-xs text-[#78350F] font-black">
           <Layers className="w-4 h-4 text-[#D97706]" />
-          <span>{t('chapters', 'Curriculum Chapters')} ({subjectChapters.length})</span>
+          <span>{t('curriculum_chapters', 'Curriculum Chapters')} ({subjectChapters.length})</span>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
