@@ -64,12 +64,12 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20">
           {/* Left: Brand Logo & Tagline */}
-          <div className="flex items-center space-x-2 sm:space-x-3">
+          <div className="flex items-center space-x-1.5 sm:space-x-3 min-w-0">
             {/* Mobile Hamburger Drawer Trigger */}
             <button
               id="header-mobile-menu-btn"
               onClick={onOpenMobileMenu}
-              className="xl:hidden p-2 rounded-xl text-slate-700 hover:bg-amber-100/80 transition min-w-[40px] min-h-[40px] flex items-center justify-center -ml-1"
+              className="xl:hidden p-1.5 sm:p-2 rounded-xl text-slate-700 hover:bg-amber-100/80 transition min-w-[38px] min-h-[38px] flex items-center justify-center -ml-1 shrink-0"
               aria-label="Open Mobile Menu"
             >
               <Menu className="w-5 h-5 sm:w-6 sm:h-6 text-amber-900" />
@@ -89,17 +89,20 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
                   }
                 }, 50);
               }}
-              className="flex items-center space-x-2 sm:space-x-3 text-left group cursor-pointer"
+              className="flex items-center space-x-2 sm:space-x-3 text-left group cursor-pointer min-w-0"
               title="Return to Home Page"
             >
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#F59E0B] rounded-xl sm:rounded-2xl flex items-center justify-center text-white text-xl sm:text-2xl font-black shadow-sm group-hover:scale-105 transition-transform shrink-0">
+              <div className="w-9 h-9 sm:w-12 sm:h-12 bg-[#F59E0B] rounded-xl sm:rounded-2xl flex items-center justify-center text-white text-lg sm:text-2xl font-black shadow-sm group-hover:scale-105 transition-transform shrink-0">
                 <span>A</span>
               </div>
-              <div>
-                <span className="text-lg sm:text-2xl font-black tracking-tight text-[#1F2937] flex items-center gap-1.5 sm:gap-2">
-                  DESHNA <span className="text-[10px] sm:text-[11px] px-2 sm:px-2.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#D97706] font-black border-2 border-[#FDE68A]">AI HUB</span>
+              <div className="min-w-0">
+                <span className="text-base sm:text-2xl font-black tracking-tight text-[#1F2937] flex items-center gap-1 sm:gap-2 leading-tight">
+                  <span>DESHNA</span>
+                  <span className="text-[9px] sm:text-[11px] px-1.5 sm:px-2.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#D97706] font-black border-2 border-[#FDE68A] shrink-0">
+                    AI HUB
+                  </span>
                 </span>
-                <p className="text-[11px] sm:text-xs font-bold text-[#92400E] hidden sm:block">
+                <p className="text-[10px] sm:text-xs font-bold text-[#92400E] hidden sm:block truncate">
                   {t('tagline', 'Learn Smarter • Practice Better')}
                 </p>
               </div>
