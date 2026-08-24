@@ -208,9 +208,55 @@ export interface Badge {
   unlockedAt?: string;
 }
 
+export type SubscriptionStatus = 'active' | 'pending' | 'overdue' | 'trial' | 'free' | 'expired';
+
+export interface ParentAccount {
+  id: string;
+  name: string;
+  email: string;
+  phone: string; // WhatsApp Number e.g. +91 9876543210
+  whatsappNumber?: string;
+  relationship: 'father' | 'mother' | 'guardian';
+  linkedStudentIds: string[]; // Child Student IDs
+  subscriptionStatus: SubscriptionStatus;
+  subscriptionPlan: string;
+  balanceDue: number; // in INR e.g. 50
+  totalPaid: number; // in INR
+  lastReminderSentAt?: string;
+  reminderCount: number;
+  isNew?: boolean;
+  registrationDate: string;
+  notes?: string;
+  status: 'active' | 'suspended' | 'new';
+}
+
+export interface FinancialTransaction {
+  id: string;
+  transactionType: 'subscription_fee' | 'payment_received' | 'adjustment' | 'manual_add';
+  studentId: string;
+  studentName: string;
+  parentId?: string;
+  parentName?: string;
+  parentPhone: string;
+  grade: number;
+  board: string;
+  amount: number; // INR
+  currency: 'INR';
+  status: 'paid' | 'pending' | 'overdue' | 'cancelled';
+  description: string;
+  dueDate: string;
+  createdAt: string;
+  paidAt?: string;
+  paymentMethod?: 'UPI' | 'Card' | 'NetBanking' | 'Cash' | 'WhatsApp Pay';
+  paymentReference?: string;
+  reminderCount: number;
+  lastReminderSentAt?: string;
+}
+
 export interface StudentProfile {
   id: string;
   name: string;
+  studentCode?: string; // e.g. DESH-2026-001
   avatar: string;
   age: number;
   gradeId: number;
@@ -232,6 +278,20 @@ export interface StudentProfile {
   recentActivityIds: string[];
   examTarget?: string;
   lastActive: string;
+  // Account & Parent Link
+  parentId?: string;
+  parentName?: string;
+  parentPhone?: string; // WhatsApp Number
+  email?: string;
+  password?: string;
+  subscriptionStatus?: SubscriptionStatus;
+  subscriptionFee?: number; // default 50
+  balanceDue?: number; // in INR e.g. 50
+  totalPaid?: number;
+  isNew?: boolean;
+  registeredDate?: string;
+  status?: 'active' | 'suspended' | 'new';
+  notes?: string;
 }
 
 export interface DailyLearningItem {

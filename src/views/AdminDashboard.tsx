@@ -26,6 +26,9 @@ import {
   GraduationCap,
   FolderTree,
   Sliders,
+  Users,
+  CreditCard,
+  Radio,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import {
@@ -38,6 +41,9 @@ import {
   StreamMaster,
   SubjectMapping,
 } from '../types';
+import { AccountManagerTab } from '../components/admin/AccountManagerTab';
+import { AutoRefreshRosterTab } from '../components/admin/AutoRefreshRosterTab';
+import { FinancialReportsTab } from '../components/admin/FinancialReportsTab';
 
 export const AdminDashboard: React.FC = () => {
   const {
@@ -49,6 +55,9 @@ export const AdminDashboard: React.FC = () => {
     subjectMappings,
     chapters,
     questions,
+    allStudents,
+    parents,
+    financialTransactions,
     addBoard,
     updateBoard,
     deleteBoard,
@@ -70,8 +79,17 @@ export const AdminDashboard: React.FC = () => {
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<
-    'categories' | 'subjects' | 'mappings' | 'boards_streams' | 'questions' | 'ai_gen' | 'csv_tools'
-  >('subjects');
+    | 'accounts'
+    | 'live_roster'
+    | 'financial_reports'
+    | 'subjects'
+    | 'categories'
+    | 'mappings'
+    | 'boards_streams'
+    | 'questions'
+    | 'ai_gen'
+    | 'csv_tools'
+  >('accounts');
 
   // Filter states for management tables
   const [filterGrade, setFilterGrade] = useState<number | 'all'>('all');
@@ -342,36 +360,48 @@ export const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Metric Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-        <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border-3 border-indigo-200 shadow-sm space-y-1">
-          <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Boards</span>
-          <p className="text-2xl sm:text-3xl font-black text-indigo-900">{boards.length}</p>
-          <span className="text-[10px] text-indigo-600 font-bold block">CBSE, ICSE, WB...</span>
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5 sm:gap-3">
+        <div className="bg-white p-3.5 rounded-2xl border-3 border-amber-300 shadow-xs space-y-1">
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Students</span>
+          <p className="text-xl sm:text-2xl font-black text-amber-900">{allStudents.length}</p>
+          <span className="text-[10px] text-amber-600 font-bold block">Enrolled</span>
         </div>
-        <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border-3 border-indigo-200 shadow-sm space-y-1">
-          <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Grades</span>
-          <p className="text-2xl sm:text-3xl font-black text-indigo-900">{grades.length}</p>
-          <span className="text-[10px] text-indigo-600 font-bold block">Classes 1 to 11</span>
+        <div className="bg-white p-3.5 rounded-2xl border-3 border-indigo-200 shadow-xs space-y-1">
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Parents</span>
+          <p className="text-xl sm:text-2xl font-black text-indigo-900">{parents.length}</p>
+          <span className="text-[10px] text-indigo-600 font-bold block">Guardians</span>
         </div>
-        <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border-3 border-indigo-200 shadow-sm space-y-1">
-          <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Categories</span>
-          <p className="text-2xl sm:text-3xl font-black text-indigo-900">{categories.length}</p>
-          <span className="text-[10px] text-indigo-600 font-bold block">Master Groups</span>
+        <div className="bg-white p-3.5 rounded-2xl border-3 border-rose-200 shadow-xs space-y-1">
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">₹50 Invoices</span>
+          <p className="text-xl sm:text-2xl font-black text-rose-600">
+            {financialTransactions.filter((t) => t.status === 'pending').length}
+          </p>
+          <span className="text-[10px] text-rose-500 font-bold block">Pending Due</span>
         </div>
-        <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border-3 border-indigo-200 shadow-sm space-y-1">
-          <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Subjects</span>
-          <p className="text-2xl sm:text-3xl font-black text-indigo-900">{subjects.length}</p>
+        <div className="bg-white p-3.5 rounded-2xl border-3 border-emerald-200 shadow-xs space-y-1">
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Boards</span>
+          <p className="text-xl sm:text-2xl font-black text-slate-800">{boards.length}</p>
+          <span className="text-[10px] text-slate-500 font-bold block">Curriculums</span>
+        </div>
+        <div className="bg-white p-3.5 rounded-2xl border-3 border-indigo-200 shadow-xs space-y-1">
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Grades</span>
+          <p className="text-xl sm:text-2xl font-black text-indigo-900">{grades.length}</p>
+          <span className="text-[10px] text-indigo-600 font-bold block">Grades 1-11</span>
+        </div>
+        <div className="bg-white p-3.5 rounded-2xl border-3 border-indigo-200 shadow-xs space-y-1">
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Categories</span>
+          <p className="text-xl sm:text-2xl font-black text-indigo-900">{categories.length}</p>
+          <span className="text-[10px] text-indigo-600 font-bold block">Disciplines</span>
+        </div>
+        <div className="bg-white p-3.5 rounded-2xl border-3 border-indigo-200 shadow-xs space-y-1">
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Subjects</span>
+          <p className="text-xl sm:text-2xl font-black text-indigo-900">{subjects.length}</p>
           <span className="text-[10px] text-indigo-600 font-bold block">Published</span>
         </div>
-        <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border-3 border-indigo-200 shadow-sm space-y-1">
-          <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Mappings</span>
-          <p className="text-2xl sm:text-3xl font-black text-indigo-900">{subjectMappings.length}</p>
-          <span className="text-[10px] text-indigo-600 font-bold block">Relational Links</span>
-        </div>
-        <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border-3 border-emerald-200 shadow-sm space-y-1">
-          <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Questions</span>
-          <p className="text-2xl sm:text-3xl font-black text-emerald-700">{questions.length}</p>
-          <span className="text-[10px] text-emerald-600 font-bold block">Active Q-Bank</span>
+        <div className="bg-white p-3.5 rounded-2xl border-3 border-emerald-200 shadow-xs space-y-1">
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Q-Bank</span>
+          <p className="text-xl sm:text-2xl font-black text-emerald-700">{questions.length}</p>
+          <span className="text-[10px] text-emerald-600 font-bold block">Questions</span>
         </div>
       </div>
 
@@ -380,20 +410,24 @@ export const AdminDashboard: React.FC = () => {
         {/* Navigation Tabs */}
         <div className="flex border-b-2 border-[#C7D2FE] bg-[#EEF2FF] overflow-x-auto p-1.5 gap-1.5 scrollbar-none">
           {[
+            { id: 'accounts', label: 'Manage Accounts (Student/Parent)', icon: Users },
+            { id: 'live_roster', label: 'Auto-Refresh Live Roster', icon: Radio },
+            { id: 'financial_reports', label: 'Financial Reports & ₹50 WhatsApp', icon: CreditCard },
             { id: 'subjects', label: 'Subjects Catalogue', icon: BookOpen },
             { id: 'categories', label: 'Master Categories', icon: Layers },
             { id: 'mappings', label: 'Subject Mappings', icon: FolderTree },
             { id: 'boards_streams', label: 'Boards & Streams', icon: GraduationCap },
             { id: 'questions', label: 'Question Bank', icon: Database },
             { id: 'ai_gen', label: 'AI Generator', icon: Sparkles },
-            { id: 'csv_tools', label: 'CSV Import & Export', icon: FileSpreadsheet },
+            { id: 'csv_tools', label: 'CSV Tools', icon: FileSpreadsheet },
           ].map((tab) => {
             const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
+                id={`admin-tab-${tab.id}`}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center space-x-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl text-xs font-black transition whitespace-nowrap border-2 ${
+                className={`flex items-center space-x-2 px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-2xl text-xs font-black transition whitespace-nowrap border-2 ${
                   activeTab === tab.id
                     ? 'bg-[#4F46E5] text-white border-[#3730A3] shadow-sm'
                     : 'bg-transparent border-transparent text-[#4338CA] hover:bg-white/60'
@@ -405,6 +439,27 @@ export const AdminDashboard: React.FC = () => {
             );
           })}
         </div>
+
+        {/* Tab 0A: Manage Accounts */}
+        {activeTab === 'accounts' && (
+          <div className="p-4 sm:p-8">
+            <AccountManagerTab />
+          </div>
+        )}
+
+        {/* Tab 0B: Auto-Refresh Live Roster */}
+        {activeTab === 'live_roster' && (
+          <div className="p-4 sm:p-8">
+            <AutoRefreshRosterTab />
+          </div>
+        )}
+
+        {/* Tab 0C: Financial Reports & ₹50 WhatsApp Reminders */}
+        {activeTab === 'financial_reports' && (
+          <div className="p-4 sm:p-8">
+            <FinancialReportsTab />
+          </div>
+        )}
 
         {/* Tab 1: Subjects Catalogue */}
         {activeTab === 'subjects' && (

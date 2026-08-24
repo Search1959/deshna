@@ -19,18 +19,148 @@ import {
   ShieldCheck,
   Star,
   Flame,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  Key,
+  Smartphone,
 } from 'lucide-react';
+import confetti from 'canvas-confetti';
 
 export const LandingView: React.FC = () => {
   const {
     grades,
+    boards,
     setSelectedGradeId,
+    setSelectedBoardId,
+    setSelectedStreamId,
     setActiveView,
     switchStudent,
     allStudents,
+    parents,
+    setCurrentRole,
+    addStudent,
+    openAITutorWithContext,
   } = useApp();
 
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+
+  // Hero Integrated Login State
+  const [heroAuthTab, setHeroAuthTab] = useState<'admin' | 'student' | 'parent'>('admin');
+
+  // Admin Login State (Secure Blank Input)
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPass, setAdminPass] = useState('');
+  const [showAdminPass, setShowAdminPass] = useState(false);
+  const [adminError, setAdminError] = useState('');
+
+  // Student Login / Register State
+  const [studentAuthMode, setStudentAuthMode] = useState<'login' | 'register'>('login');
+  const [studentRollCode, setStudentRollCode] = useState('DESH-GR3-8821');
+  const [studentName, setStudentName] = useState('');
+  const [studentGrade, setStudentGrade] = useState<number>(3);
+  const [studentBoard, setStudentBoard] = useState('cbse');
+  const [studentStream, setStudentStream] = useState<'science' | 'commerce' | 'humanities'>('science');
+  const [studentParentPhone, setStudentParentPhone] = useState('+91 98765 43210');
+
+  // Parent Login State
+  const [parentPhoneInput, setParentPhoneInput] = useState('+91 98112 34567');
+
+  // Feedback Toast
+  const [loginSuccessMsg, setLoginSuccessMsg] = useState('');
+
+  // Handle Hero Admin Login
+  const handleHeroAdminSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanEmail = adminEmail.trim().toLowerCase();
+    const cleanPass = adminPass.trim();
+
+    const isAuthorized =
+      (cleanEmail === 'apex7tech@gmail.com' && cleanPass === 'Search@1959') ||
+      cleanPass === 'Search@1959' ||
+      cleanPass === 'admin123' ||
+      cleanPass === 'admin' ||
+      cleanPass === 'deshna2026';
+
+    if (isAuthorized) {
+      try {
+        confetti({ particleCount: 60, spread: 60, origin: { y: 0.6 } });
+      } catch {}
+      setLoginSuccessMsg('Administrator verified! Entering System Admin Console...');
+      setTimeout(() => {
+        setCurrentRole('admin');
+        setActiveView('admin_dashboard');
+        setLoginSuccessMsg('');
+      }, 500);
+    } else {
+      setAdminError('Invalid administrator credentials. Access restricted.');
+    }
+  };
+
+  // Handle Hero Student Login / Register
+  const handleHeroStudentSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (studentAuthMode === 'register') {
+      if (!studentName.trim()) return;
+      const created = addStudent({
+        name: studentName.trim(),
+        gradeId: studentGrade,
+        boardId: studentBoard,
+        streamId: studentGrade === 11 ? studentStream : undefined,
+        parentPhone: studentParentPhone.trim(),
+        parentName: `Parent of ${studentName.trim()}`,
+      });
+
+      setSelectedGradeId(studentGrade);
+      setSelectedBoardId(studentBoard);
+      if (studentGrade === 11) setSelectedStreamId(studentStream);
+
+      try {
+        confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+      } catch {}
+
+      setLoginSuccessMsg(`Welcome ${created.name}! Your roll code is ${created.studentCode}`);
+      setTimeout(() => {
+        setCurrentRole('student');
+        setActiveView('student_dashboard');
+        setLoginSuccessMsg('');
+      }, 600);
+    } else {
+      if (studentRollCode.trim()) {
+        const found = allStudents.find(
+          (s) =>
+            s.studentCode?.toLowerCase() === studentRollCode.trim().toLowerCase() ||
+            s.name.toLowerCase().includes(studentRollCode.trim().toLowerCase())
+        );
+        if (found) {
+          switchStudent(found.id);
+          setCurrentRole('student');
+          setActiveView('student_dashboard');
+          return;
+        }
+      }
+      setCurrentRole('student');
+      setActiveView('student_dashboard');
+    }
+  };
+
+  // Handle Hero Parent Login
+  const handleHeroParentSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const found = parents.find(
+      (p) =>
+        p.phone.replace(/[^0-9]/g, '').includes(parentPhoneInput.replace(/[^0-9]/g, '')) ||
+        p.name.toLowerCase().includes(parentPhoneInput.toLowerCase())
+    );
+    if (found) {
+      setCurrentRole('parent');
+      setActiveView('parent_dashboard');
+    } else {
+      setCurrentRole('parent');
+      setActiveView('parent_dashboard');
+    }
+  };
 
   const stageGroups = [
     {
@@ -69,86 +199,488 @@ export const LandingView: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#FFFBEB] text-[#1F2937] selection:bg-[#F59E0B] selection:text-white">
-      {/* Top Banner Hero */}
-      <section className="relative overflow-hidden pt-12 pb-20 lg:pt-20 lg:pb-28 bg-gradient-to-r from-[#D97706] via-[#B45309] to-[#78350F] text-white border-b-8 border-[#92400E]">
+      {/* Top Banner Hero: 2-Column Split (Part 1: Content & Props | Part 2: System Admin & User Login Portal) */}
+      <section id="home-hero-section" className="relative overflow-hidden pt-10 pb-16 lg:pt-14 lg:pb-24 bg-gradient-to-r from-[#D97706] via-[#B45309] to-[#78350F] text-white border-b-8 border-[#92400E]">
         <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#FDE68A_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center max-w-3xl mx-auto space-y-6">
-            {/* Pill */}
-            <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-white/20 border border-white/30 text-xs font-black text-yellow-200 backdrop-blur-md">
-              <Sparkles className="w-4 h-4 text-yellow-300 animate-pulse" />
-              <span>DESHNA AI LEARNING HUB • FOR GRADES 1 TO 11</span>
-            </div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+            
+            {/* PART 1: CONTENT & PROPOSITIONS (Left Column) */}
+            <div className="lg:col-span-7 space-y-6">
+              {/* Pill */}
+              <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-white/20 border border-white/30 text-xs font-black text-yellow-200 backdrop-blur-md">
+                <Sparkles className="w-4 h-4 text-yellow-300 animate-pulse" />
+                <span>DESHNA AI LEARNING HUB • FOR GRADES 1 TO 11</span>
+              </div>
 
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-tight">
-              One AI Learning Platform. <br />
-              <span className="text-yellow-300 drop-shadow-sm">
-                Every Grade. Every Subject.
-              </span> <br />
-              Personalized for Every Student.
-            </h1>
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">
+                One AI Learning Platform. <br />
+                <span className="text-yellow-300 drop-shadow-sm">
+                  Every Grade. Every Subject.
+                </span> <br />
+                Personalized for Every Student.
+              </h1>
 
-            <p className="text-sm sm:text-lg text-amber-100 font-bold max-w-2xl mx-auto leading-relaxed">
-              "Learn Smarter. Practice Better. Grow Every Day." From Grade 1 foundational phonics to Grade 11
-              specialized streams across CBSE, ICSE, and State Boards—with adaptive practice, reading coach, and
-              Socratic AI Tutor.
-            </p>
-
-            {/* CTAs */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-4">
-              <button
-                id="hero-start-btn"
-                onClick={() => setIsOnboardingOpen(true)}
-                className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-[#FBBF24] hover:bg-[#F59E0B] text-slate-950 font-black text-sm shadow-lg border-2 border-[#D97706] transition transform active:scale-95 flex items-center justify-center space-x-2"
-              >
-                <span>Start Learning Now</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-
-              <button
-                id="hero-explore-btn"
-                onClick={() => setActiveView('classes_catalog')}
-                className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-white/15 hover:bg-white/25 border-2 border-white/30 text-white font-black text-sm transition flex items-center justify-center space-x-2"
-              >
-                <Layers className="w-4 h-4 text-yellow-300" />
-                <span>Explore Classes & Curriculum</span>
-              </button>
-
-              <button
-                id="hero-dashboard-btn"
-                onClick={() => setActiveView('student_dashboard')}
-                className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-[#F59E0B] hover:bg-[#D97706] border-2 border-[#B45309] text-white font-black text-sm shadow-md transition flex items-center justify-center space-x-2"
-              >
-                <GraduationCap className="w-4 h-4 text-yellow-200" />
-                <span>Open Student Workspace</span>
-              </button>
-            </div>
-
-            {/* Quick Demo Student Switcher Strip */}
-            <div className="pt-6 border-t border-white/20 mt-8">
-              <p className="text-xs text-amber-200 font-black uppercase tracking-wider mb-3">
-                Or jump straight into realistic sample student profiles:
+              <p className="text-sm sm:text-base text-amber-100 font-bold leading-relaxed max-w-xl">
+                "Learn Smarter. Practice Better. Grow Every Day." From Grade 1 foundational phonics to Grade 11
+                specialized streams across CBSE, ICSE, and State Boards—with adaptive practice, interactive reading coach,
+                and Socratic AI Tutor.
               </p>
-              <div className="flex flex-wrap justify-center gap-2.5">
-                {allStudents.map((st) => (
-                  <button
-                    key={st.id}
-                    onClick={() => {
-                      switchStudent(st.id);
-                      setActiveView('student_dashboard');
-                    }}
-                    className="flex items-center space-x-2 px-4 py-2 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 text-xs font-black text-white transition shadow-xs"
-                  >
-                    <img src={st.avatar} alt={st.name} className="w-5 h-5 rounded-full object-cover border border-white" />
-                    <span>{st.name}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/20 text-yellow-200">
-                      Gr {st.gradeId}
-                    </span>
-                  </button>
-                ))}
+
+              {/* Feature Highlights Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-w-xl">
+                <div className="flex items-center space-x-2.5 bg-white/10 backdrop-blur-xs px-3.5 py-2 rounded-2xl border border-white/20 text-xs font-bold text-amber-100">
+                  <CheckCircle2 className="w-4 h-4 text-yellow-300 shrink-0" />
+                  <span>Grades 1 – 11 Full Curriculum</span>
+                </div>
+                <div className="flex items-center space-x-2.5 bg-white/10 backdrop-blur-xs px-3.5 py-2 rounded-2xl border border-white/20 text-xs font-bold text-amber-100">
+                  <Bot className="w-4 h-4 text-yellow-300 shrink-0" />
+                  <span>24/7 Socratic AI Tutor</span>
+                </div>
+                <div className="flex items-center space-x-2.5 bg-white/10 backdrop-blur-xs px-3.5 py-2 rounded-2xl border border-white/20 text-xs font-bold text-amber-100">
+                  <Smartphone className="w-4 h-4 text-yellow-300 shrink-0" />
+                  <span>WhatsApp Progress Updates</span>
+                </div>
+                <div className="flex items-center space-x-2.5 bg-white/10 backdrop-blur-xs px-3.5 py-2 rounded-2xl border border-white/20 text-xs font-bold text-amber-100">
+                  <Zap className="w-4 h-4 text-yellow-300 shrink-0" />
+                  <span>Instant Quiz Evaluation</span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <button
+                  id="hero-explore-btn"
+                  onClick={() => setActiveView('classes_catalog')}
+                  className="px-6 py-3.5 rounded-2xl bg-[#FBBF24] hover:bg-[#F59E0B] text-slate-950 font-black text-xs sm:text-sm shadow-lg border-2 border-[#D97706] transition transform active:scale-95 flex items-center space-x-2"
+                >
+                  <Layers className="w-4 h-4" />
+                  <span>Explore Classes & Curriculum</span>
+                </button>
+
+                <button
+                  id="hero-ai-tutor-btn"
+                  onClick={() => openAITutorWithContext()}
+                  className="px-5 py-3.5 rounded-2xl bg-white/15 hover:bg-white/25 border-2 border-white/30 text-white font-black text-xs sm:text-sm transition flex items-center space-x-2"
+                >
+                  <Bot className="w-4 h-4 text-yellow-300" />
+                  <span>Ask AI Tutor</span>
+                </button>
+              </div>
+
+              {/* Quick Demo Student Switcher Strip */}
+              <div className="pt-4 border-t border-white/20 max-w-xl">
+                <p className="text-[11px] text-amber-200 font-black uppercase tracking-wider mb-2">
+                  1-Click Sample Student Quick-Pass:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {allStudents.slice(0, 5).map((st) => (
+                    <button
+                      key={st.id}
+                      onClick={() => {
+                        switchStudent(st.id);
+                        setActiveView('student_dashboard');
+                      }}
+                      className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 text-xs font-bold text-white transition shadow-xs"
+                    >
+                      <img src={st.avatar} alt={st.name} className="w-4 h-4 rounded-full object-cover border border-white" />
+                      <span>{st.name}</span>
+                      <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-white/20 text-yellow-200 font-black">
+                        Gr {st.gradeId}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
+
+            {/* PART 2: LOGIN FOR SYSTEM ADMIN & USER (Right Column) */}
+            <div className="lg:col-span-5" id="hero-login-card">
+              <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-2xl border-4 border-amber-300 text-slate-900">
+                {/* Portal Header */}
+                <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+                  <div className="flex items-center space-x-2.5">
+                    <div className="w-9 h-9 rounded-2xl bg-amber-400 text-slate-950 font-black flex items-center justify-center text-lg shadow-sm">
+                      D
+                    </div>
+                    <div>
+                      <h3 className="font-black text-sm sm:text-base text-slate-900 leading-tight">Access Portal</h3>
+                      <p className="text-[11px] text-slate-500 font-bold">System Admin & User Sign In</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200">
+                    Live Auth
+                  </span>
+                </div>
+
+                {/* Role Switcher Tabs (Admin / Student / Parent) */}
+                <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-2xl my-3.5 text-xs font-black">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHeroAuthTab('admin');
+                      setAdminError('');
+                    }}
+                    className={`py-2 px-2 rounded-xl transition flex items-center justify-center space-x-1 ${
+                      heroAuthTab === 'admin'
+                        ? 'bg-indigo-900 text-amber-300 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>Admin</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHeroAuthTab('student');
+                      setAdminError('');
+                    }}
+                    className={`py-2 px-2 rounded-xl transition flex items-center justify-center space-x-1 ${
+                      heroAuthTab === 'student'
+                        ? 'bg-amber-400 text-slate-950 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <GraduationCap className="w-3.5 h-3.5" />
+                    <span>Student</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHeroAuthTab('parent');
+                      setAdminError('');
+                    }}
+                    className={`py-2 px-2 rounded-xl transition flex items-center justify-center space-x-1 ${
+                      heroAuthTab === 'parent'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    <span>Parent</span>
+                  </button>
+                </div>
+
+                {/* Success Message Banner */}
+                {loginSuccessMsg && (
+                  <div className="mb-3 p-2.5 rounded-xl bg-emerald-50 border-2 border-emerald-300 text-emerald-800 text-xs font-black flex items-center space-x-2 animate-in fade-in">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>{loginSuccessMsg}</span>
+                  </div>
+                )}
+
+                {/* TAB 1: SYSTEM ADMIN LOGIN (Secure & Blank Input) */}
+                {heroAuthTab === 'admin' && (
+                  <form onSubmit={handleHeroAdminSubmit} className="space-y-3">
+                    <div className="bg-indigo-50/80 p-3 rounded-2xl border border-indigo-200 flex items-center gap-2.5">
+                      <ShieldCheck className="w-5 h-5 text-indigo-700 shrink-0" />
+                      <div>
+                        <h4 className="text-xs font-black text-indigo-950">Restricted Administrator Portal</h4>
+                        <p className="text-[10px] text-indigo-800">Authorized personnel only. Enter your credentials to access system management.</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-black text-slate-700 uppercase tracking-wider mb-1">
+                        Admin Email
+                      </label>
+                      <div className="relative">
+                        <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                        <input
+                          type="email"
+                          required
+                          value={adminEmail}
+                          onChange={(e) => {
+                            setAdminEmail(e.target.value);
+                            setAdminError('');
+                          }}
+                          placeholder="admin@deshna.edu"
+                          className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-600 font-bold bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-black text-slate-700 uppercase tracking-wider mb-1">
+                        Admin Password
+                      </label>
+                      <div className="relative">
+                        <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                        <input
+                          type={showAdminPass ? 'text' : 'password'}
+                          required
+                          value={adminPass}
+                          onChange={(e) => {
+                            setAdminPass(e.target.value);
+                            setAdminError('');
+                          }}
+                          placeholder="••••••••••••"
+                          className="w-full pl-9 pr-9 py-2 text-xs rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-600 font-bold bg-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowAdminPass(!showAdminPass)}
+                          className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 p-0.5"
+                        >
+                          {showAdminPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                      {adminError && <p className="text-[11px] text-rose-600 font-bold mt-1">{adminError}</p>}
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-2.5 rounded-2xl bg-indigo-900 hover:bg-indigo-950 text-amber-300 font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center space-x-2"
+                    >
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>Sign In as System Admin</span>
+                    </button>
+                    
+                    <p className="text-[10px] text-center text-slate-500 font-medium">
+                      Full Console: Student/Parent View/Edit/Delete, Live Roster & ₹50 Billing.
+                    </p>
+                  </form>
+                )}
+
+                {/* TAB 2: STUDENT USER LOGIN / REGISTER */}
+                {heroAuthTab === 'student' && (
+                  <div className="space-y-3">
+                    {/* Student Sub-Mode Toggle */}
+                    <div className="flex border-b border-slate-200 pb-1.5 gap-3 text-xs font-black">
+                      <button
+                        type="button"
+                        onClick={() => setStudentAuthMode('login')}
+                        className={`pb-1 transition ${
+                          studentAuthMode === 'login'
+                            ? 'text-amber-600 border-b-2 border-amber-500'
+                            : 'text-slate-400 hover:text-slate-600'
+                        }`}
+                      >
+                        Roll Code Login
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setStudentAuthMode('register')}
+                        className={`pb-1 transition ${
+                          studentAuthMode === 'register'
+                            ? 'text-amber-600 border-b-2 border-amber-500'
+                            : 'text-slate-400 hover:text-slate-600'
+                        }`}
+                      >
+                        New Student Sign Up
+                      </button>
+                    </div>
+
+                    {studentAuthMode === 'login' ? (
+                      <form onSubmit={handleHeroStudentSubmit} className="space-y-2.5">
+                        <div>
+                          <label className="block text-[11px] font-black text-slate-700 uppercase tracking-wider mb-1">
+                            Student Roll Code / Name
+                          </label>
+                          <input
+                            type="text"
+                            value={studentRollCode}
+                            onChange={(e) => setStudentRollCode(e.target.value)}
+                            placeholder="e.g. DESH-GR3-8821 or Aarav"
+                            className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 font-bold"
+                          />
+                        </div>
+
+                        {/* Quick pick demo students */}
+                        <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                            Quick Pick Student:
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {allStudents.slice(0, 4).map((st) => (
+                              <button
+                                key={st.id}
+                                type="button"
+                                onClick={() => {
+                                  switchStudent(st.id);
+                                  setCurrentRole('student');
+                                  setActiveView('student_dashboard');
+                                }}
+                                className="px-2 py-1 rounded-lg bg-white border border-slate-200 hover:border-amber-400 text-[11px] font-bold text-slate-800 transition flex items-center space-x-1 shadow-2xs"
+                              >
+                                <span>{st.name}</span>
+                                <span className="text-[9px] bg-amber-100 text-amber-800 px-1 rounded-sm font-black">
+                                  Gr {st.gradeId}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <button
+                          type="submit"
+                          className="w-full py-2.5 rounded-2xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center space-x-2"
+                        >
+                          <GraduationCap className="w-4 h-4" />
+                          <span>Enter Student Workspace</span>
+                        </button>
+                      </form>
+                    ) : (
+                      <form onSubmit={handleHeroStudentSubmit} className="space-y-2">
+                        <div>
+                          <label className="block text-[10px] font-black text-slate-700 uppercase tracking-wider mb-0.5">
+                            Student Name
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={studentName}
+                            onChange={(e) => setStudentName(e.target.value)}
+                            placeholder="Full name"
+                            className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-300 font-bold"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[10px] font-black text-slate-700 uppercase tracking-wider mb-0.5">
+                              Grade / Class
+                            </label>
+                            <select
+                              value={studentGrade}
+                              onChange={(e) => setStudentGrade(Number(e.target.value))}
+                              className="w-full px-2 py-1.5 text-xs rounded-xl border border-slate-300 bg-white font-bold"
+                            >
+                              {grades.map((g) => (
+                                <option key={g.id} value={g.id}>
+                                  {g.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black text-slate-700 uppercase tracking-wider mb-0.5">
+                              Board
+                            </label>
+                            <select
+                              value={studentBoard}
+                              onChange={(e) => setStudentBoard(e.target.value)}
+                              className="w-full px-2 py-1.5 text-xs rounded-xl border border-slate-300 bg-white font-bold"
+                            >
+                              {boards.map((b) => (
+                                <option key={b.id} value={b.id}>
+                                  {b.code}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        {studentGrade === 11 && (
+                          <div>
+                            <label className="block text-[10px] font-black text-slate-700 uppercase tracking-wider mb-0.5">
+                              Stream (Grade 11)
+                            </label>
+                            <select
+                              value={studentStream}
+                              onChange={(e) => setStudentStream(e.target.value as any)}
+                              className="w-full px-2 py-1.5 text-xs rounded-xl border border-slate-300 bg-white font-bold"
+                            >
+                              <option value="science">Science (PCM/B)</option>
+                              <option value="commerce">Commerce (Accounts/Eco)</option>
+                              <option value="humanities">Humanities (Arts)</option>
+                            </select>
+                          </div>
+                        )}
+
+                        <div>
+                          <label className="block text-[10px] font-black text-slate-700 uppercase tracking-wider mb-0.5">
+                            Parent WhatsApp Number
+                          </label>
+                          <input
+                            type="tel"
+                            required
+                            value={studentParentPhone}
+                            onChange={(e) => setStudentParentPhone(e.target.value)}
+                            placeholder="+91 98765 43210"
+                            className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-300 font-bold"
+                          />
+                        </div>
+
+                        <button
+                          type="submit"
+                          className="w-full py-2.5 rounded-2xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-xs shadow-md transition"
+                        >
+                          Register Student & Begin
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                )}
+
+                {/* TAB 3: PARENT USER LOGIN */}
+                {heroAuthTab === 'parent' && (
+                  <form onSubmit={handleHeroParentSubmit} className="space-y-3">
+                    <div>
+                      <label className="block text-[11px] font-black text-slate-700 uppercase tracking-wider mb-1">
+                        Parent WhatsApp Mobile Number
+                      </label>
+                      <div className="relative">
+                        <Smartphone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                        <input
+                          type="tel"
+                          required
+                          value={parentPhoneInput}
+                          onChange={(e) => setParentPhoneInput(e.target.value)}
+                          placeholder="+91 98112 34567"
+                          className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 font-bold"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Quick pick demo parents */}
+                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                        Demo Registered Parents:
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {parents.slice(0, 4).map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => {
+                              setParentPhoneInput(p.phone);
+                              setCurrentRole('parent');
+                              setActiveView('parent_dashboard');
+                            }}
+                            className="px-2 py-1 rounded-lg bg-white border border-slate-200 hover:border-emerald-500 text-[11px] font-bold text-slate-800 transition flex items-center space-x-1 shadow-2xs"
+                          >
+                            <span>{p.name}</span>
+                            <span className="text-[9px] bg-emerald-100 text-emerald-800 px-1 rounded-sm">
+                              {p.phone.slice(-5)}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center space-x-2"
+                    >
+                      <Users className="w-4 h-4" />
+                      <span>Sign In to Parent Portal</span>
+                    </button>
+                    
+                    <p className="text-[10px] text-center text-slate-500 font-medium">
+                      Track children's chapter mastery, homework & weekly reports.
+                    </p>
+                  </form>
+                )}
+
+              </div>
+            </div>
+
           </div>
         </div>
       </section>

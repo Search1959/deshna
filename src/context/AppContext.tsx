@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   UserRole,
   StudentProfile,
+  ParentAccount,
+  FinancialTransaction,
   Board,
   Grade,
   Subject,
@@ -38,6 +40,8 @@ import {
 import { generateDefaultChaptersForSubject } from '../data/chaptersData';
 import {
   DEMO_STUDENTS,
+  DEMO_PARENTS,
+  INITIAL_FINANCIAL_TRANSACTIONS,
   INITIAL_DAILY_PLANS,
   INITIAL_REVISION_ITEMS,
   BADGES,
@@ -79,13 +83,41 @@ interface AppContextType {
   selectedChapterId: string | null;
   setSelectedChapterId: (chapterId: string | null) => void;
 
-  // Current Student & Profiles
+  // Student & Parent Database
   currentStudent: StudentProfile;
   setCurrentStudent: (student: StudentProfile) => void;
   allStudents: StudentProfile[];
+  parents: ParentAccount[];
+  financialTransactions: FinancialTransaction[];
   switchStudent: (studentId: string) => void;
   updateStudentMastery: (subjectId: string, chapterId: string, topicId: string, isCorrect: boolean) => void;
   awardPoints: (points: number, reason?: string) => void;
+
+  // User Management CRUD
+  addStudent: (student: Partial<StudentProfile>) => StudentProfile;
+  updateStudent: (studentId: string, updates: Partial<StudentProfile>) => void;
+  deleteStudent: (studentId: string) => void;
+  addParent: (parent: Partial<ParentAccount>) => ParentAccount;
+  updateParent: (parentId: string, updates: Partial<ParentAccount>) => void;
+  deleteParent: (parentId: string) => void;
+
+  // Financial & Subscription Fee Actions (50 INR)
+  addSubscriptionFee: (studentId: string, amount?: number, description?: string) => void;
+  bulkAddSubscriptionFee: (amount?: number) => number;
+  markSubscriptionPaid: (transactionId: string, paymentMethod?: string, reference?: string) => void;
+  sendWhatsAppReminder: (targetId: string, customMessage?: string) => { whatsappUrl: string; message: string; phone: string };
+
+  // Live Auto-Refresh
+  isAutoRefreshEnabled: boolean;
+  setIsAutoRefreshEnabled: (enabled: boolean) => void;
+  lastAutoRefreshedAt: string;
+  refreshStudentParentDatabase: () => void;
+
+  // Login & Registration Modal
+  isLoginModalOpen: boolean;
+  loginModalDefaultTab: 'student' | 'parent' | 'admin';
+  openLoginModal: (tab?: 'student' | 'parent' | 'admin') => void;
+  closeLoginModal: () => void;
 
   // Daily Learning Plan
   dailyPlan: DailyPlan;
@@ -190,9 +222,490 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>('g3-math');
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>('ch-g3-m5');
 
-  // Student State
-  const [allStudents, setAllStudents] = useState<StudentProfile[]>(DEMO_STUDENTS);
-  const [currentStudent, setCurrentStudent] = useState<StudentProfile>(DEMO_STUDENTS[0]);
+  // Student & Parent & Financial State
+  const [allStudents, setAllStudents] = useState<StudentProfile[]>(() => {
+    try {
+      const saved = localStorage.getItem('eduvate_students');
+      return saved ? JSON.parse(saved) : DEMO_STUDENTS;
+    } catch {
+      return DEMO_STUDENTS;
+    }
+  });
+
+  const [parents, setParents] = useState<ParentAccount[]>(() => {
+    try {
+      const saved = localStorage.getItem('eduvate_parents');
+      return saved ? JSON.parse(saved) : DEMO_PARENTS;
+    } catch {
+      return DEMO_PARENTS;
+    }
+  });
+
+  const [financialTransactions, setFinancialTransactions] = useState<FinancialTransaction[]>(() => {
+    try {
+      const saved = localStorage.getItem('eduvate_financials');
+      return saved ? JSON.parse(saved) : INITIAL_FINANCIAL_TRANSACTIONS;
+    } catch {
+      return INITIAL_FINANCIAL_TRANSACTIONS;
+    }
+  });
+
+  const [currentStudent, setCurrentStudent] = useState<StudentProfile>(() => allStudents[0] || DEMO_STUDENTS[0]);
+
+  // Live Auto-Refresh State
+  const [isAutoRefreshEnabled, setIsAutoRefreshEnabled] = useState<boolean>(true);
+  const [lastAutoRefreshedAt, setLastAutoRefreshedAt] = useState<string>(new Date().toLocaleTimeString());
+
+  // Login & Registration Modal State
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
+  const [loginModalDefaultTab, setLoginModalDefaultTab] = useState<'student' | 'parent' | 'admin'>('student');
+
+  const openLoginModal = (tab: 'student' | 'parent' | 'admin' = 'student') => {
+    setLoginModalDefaultTab(tab);
+    setIsLoginModalOpen(true);
+  };
+
+  const closeLoginModal = () => {
+    setIsLoginModalOpen(false);
+  };
+
+  // Sync Students, Parents & Financials to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('eduvate_students', JSON.stringify(allStudents));
+    } catch (e) {
+      console.warn('Student storage sync error', e);
+    }
+  }, [allStudents]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('eduvate_parents', JSON.stringify(parents));
+    } catch (e) {
+      console.warn('Parents storage sync error', e);
+    }
+  }, [parents]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('eduvate_financials', JSON.stringify(financialTransactions));
+    } catch (e) {
+      console.warn('Financials storage sync error', e);
+    }
+  }, [financialTransactions]);
+
+  // Live Auto-refresh timer every 8 seconds when enabled
+  useEffect(() => {
+    if (!isAutoRefreshEnabled) return;
+    const interval = setInterval(() => {
+      setLastAutoRefreshedAt(new Date().toLocaleTimeString());
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [isAutoRefreshEnabled]);
+
+  const refreshStudentParentDatabase = () => {
+    setLastAutoRefreshedAt(new Date().toLocaleTimeString());
+  };
+
+  // Student CRUD Operations
+  const addStudent = (studentData: Partial<StudentProfile>): StudentProfile => {
+    const studentId = studentData.id || `student-${Date.now()}`;
+    const codeNum = allStudents.length + 1;
+    const studentCode = studentData.studentCode || `DESH-2026-${String(codeNum).padStart(3, '0')}`;
+    
+    let parentId = studentData.parentId;
+    // If parent phone/name provided but no parentId, create or find parent
+    if (!parentId && (studentData.parentPhone || studentData.parentName)) {
+      const existingParent = parents.find((p) => p.phone === studentData.parentPhone);
+      if (existingParent) {
+        parentId = existingParent.id;
+        if (!existingParent.linkedStudentIds.includes(studentId)) {
+          setParents((prev) =>
+            prev.map((p) => (p.id === existingParent.id ? { ...p, linkedStudentIds: [...p.linkedStudentIds, studentId] } : p))
+          );
+        }
+      } else {
+        const newParentId = `parent-${Date.now()}`;
+        const newParent: ParentAccount = {
+          id: newParentId,
+          name: studentData.parentName || `Parent of ${studentData.name || 'Student'}`,
+          email: `${studentData.name?.toLowerCase().replace(/\s+/g, '.') || 'parent'}@example.com`,
+          phone: studentData.parentPhone || '+91 98000 00000',
+          whatsappNumber: studentData.parentPhone || '+91 98000 00000',
+          relationship: 'guardian',
+          linkedStudentIds: [studentId],
+          subscriptionStatus: 'pending',
+          subscriptionPlan: 'Monthly Academic Plan (₹50)',
+          balanceDue: 50,
+          totalPaid: 0,
+          reminderCount: 0,
+          isNew: true,
+          registrationDate: new Date().toISOString().split('T')[0],
+          status: 'new',
+          notes: 'Auto-registered via Student Sign-up.',
+        };
+        setParents((prev) => [newParent, ...prev]);
+        parentId = newParentId;
+      }
+    }
+
+    const newStudent: StudentProfile = {
+      id: studentId,
+      name: studentData.name || 'New Learner',
+      studentCode,
+      avatar: studentData.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      age: studentData.age || (studentData.gradeId ? studentData.gradeId + 5 : 9),
+      gradeId: studentData.gradeId || selectedGradeId || 3,
+      boardId: studentData.boardId || selectedBoardId || 'cbse',
+      streamId: studentData.streamId,
+      schoolType: studentData.schoolType || 'Day School',
+      preferredLanguage: studentData.preferredLanguage || 'English',
+      interests: studentData.interests || ['General Science', 'Math Puzzles'],
+      dailyGoalMinutes: studentData.dailyGoalMinutes || 30,
+      streakDays: 1,
+      totalPoints: 100,
+      masteryBySubject: studentData.masteryBySubject || { 'g3-math': 65, 'g3-eng': 70 },
+      chapterMastery: {},
+      weakTopicIds: [],
+      strongTopicIds: [],
+      learningStyleSignals: ['Visual diagrams', 'Guided practice'],
+      wpmReadingSpeed: (studentData.gradeId || 3) * 20 + 20,
+      masteredVocabularyCount: 15,
+      recentActivityIds: [],
+      lastActive: 'Just registered',
+      parentId,
+      parentName: studentData.parentName,
+      parentPhone: studentData.parentPhone,
+      email: studentData.email || `${studentData.name?.toLowerCase().replace(/\s+/g, '.') || 'student'}@deshna.hub`,
+      subscriptionStatus: 'pending',
+      subscriptionFee: 50,
+      balanceDue: 50,
+      totalPaid: 0,
+      isNew: true,
+      registeredDate: new Date().toISOString().split('T')[0],
+      status: 'new',
+      notes: studentData.notes,
+    };
+
+    // Auto-create initial 50 INR transaction
+    const newTx: FinancialTransaction = {
+      id: `tx-${Date.now()}`,
+      transactionType: 'subscription_fee',
+      studentId: newStudent.id,
+      studentName: newStudent.name,
+      parentId,
+      parentName: newStudent.parentName,
+      parentPhone: newStudent.parentPhone || '+91 98000 00000',
+      grade: newStudent.gradeId,
+      board: (newStudent.boardId || 'CBSE').toUpperCase(),
+      amount: 50,
+      currency: 'INR',
+      status: 'pending',
+      description: 'First Month AI Learning Hub Subscription (₹50 INR)',
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      createdAt: new Date().toISOString(),
+      reminderCount: 0,
+    };
+
+    setAllStudents((prev) => [newStudent, ...prev]);
+    setFinancialTransactions((prev) => [newTx, ...prev]);
+    setCurrentStudent(newStudent);
+    return newStudent;
+  };
+
+  const updateStudent = (studentId: string, updates: Partial<StudentProfile>) => {
+    setAllStudents((prev) =>
+      prev.map((s) => (s.id === studentId ? { ...s, ...updates, isNew: false } : s))
+    );
+    if (currentStudent.id === studentId) {
+      setCurrentStudent((prev) => ({ ...prev, ...updates }));
+    }
+  };
+
+  const deleteStudent = (studentId: string) => {
+    setAllStudents((prev) => prev.filter((s) => s.id !== studentId));
+    setParents((prev) =>
+      prev.map((p) => ({
+        ...p,
+        linkedStudentIds: p.linkedStudentIds.filter((id) => id !== studentId),
+      }))
+    );
+  };
+
+  // Parent CRUD Operations
+  const addParent = (parentData: Partial<ParentAccount>): ParentAccount => {
+    const parentId = parentData.id || `parent-${Date.now()}`;
+    const newParent: ParentAccount = {
+      id: parentId,
+      name: parentData.name || 'Parent User',
+      email: parentData.email || `parent.${Date.now()}@example.com`,
+      phone: parentData.phone || '+91 98000 00000',
+      whatsappNumber: parentData.whatsappNumber || parentData.phone || '+91 98000 00000',
+      relationship: parentData.relationship || 'mother',
+      linkedStudentIds: parentData.linkedStudentIds || [],
+      subscriptionStatus: parentData.subscriptionStatus || 'pending',
+      subscriptionPlan: parentData.subscriptionPlan || 'Monthly Academic Plan (₹50)',
+      balanceDue: parentData.balanceDue !== undefined ? parentData.balanceDue : 50,
+      totalPaid: parentData.totalPaid || 0,
+      reminderCount: 0,
+      isNew: true,
+      registrationDate: new Date().toISOString().split('T')[0],
+      status: 'new',
+      notes: parentData.notes,
+    };
+
+    setParents((prev) => [newParent, ...prev]);
+    return newParent;
+  };
+
+  const updateParent = (parentId: string, updates: Partial<ParentAccount>) => {
+    setParents((prev) =>
+      prev.map((p) => (p.id === parentId ? { ...p, ...updates, isNew: false } : p))
+    );
+  };
+
+  const deleteParent = (parentId: string) => {
+    setParents((prev) => prev.filter((p) => p.id !== parentId));
+  };
+
+  // Financial Actions: Add 50 INR Subscription Fee
+  const addSubscriptionFee = (studentId: string, amount: number = 50, description?: string) => {
+    const student = allStudents.find((s) => s.id === studentId);
+    if (!student) return;
+
+    const parent = parents.find((p) => p.id === student.parentId || p.linkedStudentIds.includes(studentId));
+
+    const newTx: FinancialTransaction = {
+      id: `tx-${Date.now()}`,
+      transactionType: 'manual_add',
+      studentId: student.id,
+      studentName: student.name,
+      parentId: parent?.id,
+      parentName: parent?.name || student.parentName,
+      parentPhone: parent?.phone || student.parentPhone || '+91 98000 00000',
+      grade: student.gradeId,
+      board: student.boardId.toUpperCase(),
+      amount,
+      currency: 'INR',
+      status: 'pending',
+      description: description || `Monthly AI Learning Hub Subscription Fee (₹${amount} INR)`,
+      dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      createdAt: new Date().toISOString(),
+      reminderCount: 0,
+    };
+
+    setFinancialTransactions((prev) => [newTx, ...prev]);
+
+    // Update Student Balance
+    setAllStudents((prev) =>
+      prev.map((s) =>
+        s.id === studentId
+          ? {
+              ...s,
+              balanceDue: (s.balanceDue || 0) + amount,
+              subscriptionStatus: 'pending',
+            }
+          : s
+      )
+    );
+
+    // Update Parent Balance
+    if (parent) {
+      setParents((prev) =>
+        prev.map((p) =>
+          p.id === parent.id
+            ? {
+                ...p,
+                balanceDue: (p.balanceDue || 0) + amount,
+                subscriptionStatus: 'pending',
+              }
+            : p
+        )
+      );
+    }
+  };
+
+  // Bulk Add 50 INR to all active students
+  const bulkAddSubscriptionFee = (amount: number = 50): number => {
+    let billedCount = 0;
+    const newTransactions: FinancialTransaction[] = [];
+
+    allStudents.forEach((student) => {
+      if (student.status !== 'suspended') {
+        billedCount++;
+        const parent = parents.find((p) => p.id === student.parentId || p.linkedStudentIds.includes(student.id));
+        newTransactions.push({
+          id: `tx-bulk-${Date.now()}-${student.id}`,
+          transactionType: 'subscription_fee',
+          studentId: student.id,
+          studentName: student.name,
+          parentId: parent?.id,
+          parentName: parent?.name || student.parentName,
+          parentPhone: parent?.phone || student.parentPhone || '+91 98000 00000',
+          grade: student.gradeId,
+          board: student.boardId.toUpperCase(),
+          amount,
+          currency: 'INR',
+          status: 'pending',
+          description: `Monthly AI Learning Hub Renewal (₹${amount} INR)`,
+          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          createdAt: new Date().toISOString(),
+          reminderCount: 0,
+        });
+      }
+    });
+
+    if (newTransactions.length > 0) {
+      setFinancialTransactions((prev) => [...newTransactions, ...prev]);
+      setAllStudents((prev) =>
+        prev.map((s) => ({
+          ...s,
+          balanceDue: (s.balanceDue || 0) + amount,
+          subscriptionStatus: 'pending',
+        }))
+      );
+      setParents((prev) =>
+        prev.map((p) => ({
+          ...p,
+          balanceDue: (p.balanceDue || 0) + amount * (p.linkedStudentIds.length || 1),
+          subscriptionStatus: 'pending',
+        }))
+      );
+    }
+
+    return billedCount;
+  };
+
+  const markSubscriptionPaid = (transactionId: string, paymentMethod: string = 'UPI', reference?: string) => {
+    const tx = financialTransactions.find((t) => t.id === transactionId);
+    if (!tx || tx.status === 'paid') return;
+
+    setFinancialTransactions((prev) =>
+      prev.map((t) =>
+        t.id === transactionId
+          ? {
+              ...t,
+              status: 'paid',
+              paidAt: new Date().toISOString(),
+              paymentMethod: paymentMethod as any,
+              paymentReference: reference || `UPI/REF/${Date.now().toString().slice(-8)}`,
+            }
+          : t
+      )
+    );
+
+    // Reduce student balance
+    setAllStudents((prev) =>
+      prev.map((s) => {
+        if (s.id === tx.studentId) {
+          const newBal = Math.max(0, (s.balanceDue || 0) - tx.amount);
+          return {
+            ...s,
+            balanceDue: newBal,
+            totalPaid: (s.totalPaid || 0) + tx.amount,
+            subscriptionStatus: newBal === 0 ? 'active' : 'pending',
+          };
+        }
+        return s;
+      })
+    );
+
+    // Reduce parent balance
+    if (tx.parentId) {
+      setParents((prev) =>
+        prev.map((p) => {
+          if (p.id === tx.parentId) {
+            const newBal = Math.max(0, (p.balanceDue || 0) - tx.amount);
+            return {
+              ...p,
+              balanceDue: newBal,
+              totalPaid: (p.totalPaid || 0) + tx.amount,
+              subscriptionStatus: newBal === 0 ? 'active' : 'pending',
+            };
+          }
+          return p;
+        })
+      );
+    }
+  };
+
+  // Send WhatsApp Reminder Link Generator
+  const sendWhatsAppReminder = (
+    targetId: string,
+    customMessage?: string
+  ): { whatsappUrl: string; message: string; phone: string } => {
+    // Target can be studentId or parentId or transactionId
+    const student = allStudents.find((s) => s.id === targetId);
+    const parent = parents.find((p) => p.id === targetId || (student && p.linkedStudentIds.includes(student.id)));
+    const tx = financialTransactions.find((t) => t.id === targetId || (student && t.studentId === student.id && t.status !== 'paid'));
+
+    const studentName = student?.name || tx?.studentName || 'Student';
+    const parentName = parent?.name || student?.parentName || 'Respected Parent';
+    const rawPhone = parent?.phone || student?.parentPhone || tx?.parentPhone || '919876543210';
+    const cleanPhone = rawPhone.replace(/[^0-9]/g, '');
+    const amount = tx?.amount || student?.balanceDue || 50;
+    const grade = student?.gradeId || tx?.grade || 3;
+    const board = (student?.boardId || tx?.board || 'CBSE').toUpperCase();
+
+    const timestamp = new Date().toISOString();
+
+    // Increment reminder counter on student & parent & tx
+    if (student) {
+      setAllStudents((prev) =>
+        prev.map((s) =>
+          s.id === student.id
+            ? { ...s, lastActive: 'Reminder sent', isNew: false }
+            : s
+        )
+      );
+    }
+
+    if (parent) {
+      setParents((prev) =>
+        prev.map((p) =>
+          p.id === parent.id
+            ? {
+                ...p,
+                reminderCount: (p.reminderCount || 0) + 1,
+                lastReminderSentAt: timestamp,
+                isNew: false,
+              }
+            : p
+        )
+      );
+    }
+
+    if (tx) {
+      setFinancialTransactions((prev) =>
+        prev.map((t) =>
+          t.id === tx.id
+            ? {
+                ...t,
+                reminderCount: (t.reminderCount || 0) + 1,
+                lastReminderSentAt: timestamp,
+              }
+            : t
+        )
+      );
+    }
+
+    const defaultMsg = `🌟 *DESHNA AI LEARNING HUB* 📚\n\n` +
+      `Namaste ${parentName} ji!\n\n` +
+      `This is a friendly reminder regarding the monthly academic subscription for *${studentName}* (Grade ${grade}, ${board}).\n\n` +
+      `💳 *Pending Subscription Amount*: *₹${amount} INR*\n` +
+      `📅 *Due Date*: ${tx?.dueDate || 'Immediate'}\n` +
+      `✨ *Services Included*: 24/7 AI Tutor, Step-by-Step Doubt Solver, AI Reading Coach, Daily Mastery Quizzes & Parent Progress Reports.\n\n` +
+      `📲 *Quick Payment via UPI*:\n` +
+      `• UPI ID: \`deshna.edu@upi\`\n` +
+      `• GooglePay / PhonePe / Paytm / WhatsApp Pay\n\n` +
+      `Kindly complete the payment of *₹${amount} INR* to keep ${studentName}'s learning streak uninterrupted.\n\n` +
+      `_Deshna AI Learning Hub Support: +91-9876543210_`;
+
+    const message = customMessage || defaultMsg;
+    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+
+    return { whatsappUrl, message, phone: cleanPhone };
+  };
 
   // Curriculum State (Saved to localStorage for complete CMS persistence)
   const [boards, setBoards] = useState<Board[]>(() => {
@@ -727,9 +1240,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         currentStudent,
         setCurrentStudent,
         allStudents,
+        parents,
+        financialTransactions,
         switchStudent,
         updateStudentMastery,
         awardPoints,
+        addStudent,
+        updateStudent,
+        deleteStudent,
+        addParent,
+        updateParent,
+        deleteParent,
+        addSubscriptionFee,
+        bulkAddSubscriptionFee,
+        markSubscriptionPaid,
+        sendWhatsAppReminder,
+        isAutoRefreshEnabled,
+        setIsAutoRefreshEnabled,
+        lastAutoRefreshedAt,
+        refreshStudentParentDatabase,
+        isLoginModalOpen,
+        loginModalDefaultTab,
+        openLoginModal,
+        closeLoginModal,
         dailyPlan,
         setDailyPlanMinutes,
         toggleDailyPlanItem,

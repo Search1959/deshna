@@ -5,6 +5,7 @@ import { MobileNavigation } from './components/MobileNavigation';
 import { MobileMenuDrawer } from './components/MobileMenuDrawer';
 import { AITutorDrawer } from './components/AITutorDrawer';
 import { SearchModal } from './components/SearchModal';
+import { LoginModal } from './components/LoginModal';
 import { LandingView } from './views/LandingView';
 import { ClassesCatalogView } from './views/ClassesCatalogView';
 import { StudentDashboard } from './views/StudentDashboard';
@@ -22,23 +23,27 @@ import { AdminDashboard } from './views/AdminDashboard';
 const MainContent: React.FC = () => {
   const { activeView, currentRole } = useApp();
 
-  // If in non-student role, render corresponding role dashboard unless in catalog/search
-  if (currentRole === 'parent' && activeView !== 'classes_catalog') {
+  // If landing or catalog, always render them regardless of role
+  if (activeView === 'landing') {
+    return <LandingView />;
+  }
+  if (activeView === 'classes_catalog') {
+    return <ClassesCatalogView />;
+  }
+
+  // If in non-student role, render corresponding role dashboard
+  if (currentRole === 'parent') {
     return <ParentDashboard />;
   }
-  if (currentRole === 'teacher' && activeView !== 'classes_catalog') {
+  if (currentRole === 'teacher') {
     return <TeacherDashboard />;
   }
-  if (currentRole === 'admin' && activeView !== 'classes_catalog') {
+  if (currentRole === 'admin') {
     return <AdminDashboard />;
   }
 
-  // Student & Public views
+  // Student & other views
   switch (activeView) {
-    case 'landing':
-      return <LandingView />;
-    case 'classes_catalog':
-      return <ClassesCatalogView />;
     case 'student_dashboard':
       return <StudentDashboard />;
     case 'subject_detail':
@@ -82,6 +87,7 @@ const AppShell: React.FC = () => {
       />
       <AITutorDrawer />
       <SearchModal />
+      <LoginModal />
     </div>
   );
 };

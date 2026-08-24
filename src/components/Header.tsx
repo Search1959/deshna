@@ -3,9 +3,6 @@ import { useApp } from '../context/AppContext';
 import { UserRole } from '../types';
 import {
   Sparkles,
-  Flame,
-  Star,
-  Search,
   Bot,
   Volume2,
   VolumeX,
@@ -42,10 +39,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
     boards,
     grades,
     openAITutorWithContext,
-    setIsSearchOpen,
     isSpeaking,
     stopSpeaking,
     speakText,
+    openLoginModal,
   } = useApp();
 
   const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false);
@@ -77,8 +74,20 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
 
             <button
               id="brand-logo-btn"
-              onClick={() => setActiveView(currentRole === 'student' ? 'student_dashboard' : activeView)}
-              className="flex items-center space-x-2 sm:space-x-3 text-left group"
+              onClick={() => {
+                setActiveView('landing');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                setTimeout(() => {
+                  const heroEl = document.getElementById('home-hero-section');
+                  if (heroEl) {
+                    heroEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  } else {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }, 50);
+              }}
+              className="flex items-center space-x-2 sm:space-x-3 text-left group cursor-pointer"
+              title="Return to Home Page"
             >
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#F59E0B] rounded-xl sm:rounded-2xl flex items-center justify-center text-white text-xl sm:text-2xl font-black shadow-sm group-hover:scale-105 transition-transform shrink-0">
                 <span>A</span>
@@ -193,40 +202,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
             </nav>
           )}
 
-          {/* Right: Search, Gamification stats, AI Tutor, Role switch */}
+          {/* Right: AI Tutor, Login / Onboard, Voice Narration, Role switch */}
           <div className="flex items-center space-x-1.5 sm:space-x-2.5">
-            {/* Global Search Button */}
-            <button
-              id="header-search-btn"
-              onClick={() => setIsSearchOpen(true)}
-              className="flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs font-bold text-[#78350F] bg-[#FEF3C7] hover:bg-[#FDE68A] rounded-xl border-2 border-[#FDE68A] transition min-h-[38px]"
-              title="Search curriculum (Ctrl+K)"
-            >
-              <Search className="w-3.5 h-3.5 text-[#D97706]" />
-              <span className="hidden sm:inline">Search</span>
-              <kbd className="hidden md:inline text-[10px] bg-white px-1.5 py-0.5 rounded-md font-bold text-[#92400E]">⌘K</kbd>
-            </button>
-
-            {/* Student Gamification Stats */}
-            {currentRole === 'student' && (
-              <div className="hidden sm:flex items-center space-x-1.5 sm:space-x-2">
-                <div
-                  className="flex items-center space-x-1 sm:space-x-1.5 px-2 sm:px-3 py-1.5 bg-[#FEF3C7] border-2 border-[#FDE68A] rounded-xl text-[#92400E] text-xs font-black"
-                  title="Daily Active Streak"
-                >
-                  <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#F59E0B] fill-[#F59E0B]" />
-                  <span>{currentStudent.streakDays}d</span>
-                </div>
-                <div
-                  className="hidden md:flex items-center space-x-1.5 px-3 py-1.5 bg-[#D1FAE5] border-2 border-[#6EE7B7] rounded-xl text-[#065F46] text-xs font-black"
-                  title="Learning XP Points"
-                >
-                  <Star className="w-4 h-4 text-[#10B981] fill-[#10B981]" />
-                  <span>{currentStudent.totalPoints}</span>
-                </div>
-              </div>
-            )}
-
             {/* AI Tutor Primary Button */}
             <button
               id="ask-ai-tutor-header-btn"
@@ -235,6 +212,17 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
             >
               <Bot className="w-4 h-4" />
               <span className="hidden md:inline">Ask AI Tutor</span>
+            </button>
+
+            {/* Direct Login / Add Account Modal Button */}
+            <button
+              id="header-login-register-btn"
+              onClick={() => openLoginModal(currentRole === 'admin' ? 'admin' : currentRole === 'parent' ? 'parent' : 'student')}
+              className="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border-2 border-amber-400 bg-amber-400 hover:bg-amber-500 text-slate-900 text-xs font-black shadow-xs transition"
+              title="Add or Login Student / Parent / Admin"
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>+ Login / Onboard</span>
             </button>
 
             {/* Speech synthesis audio toggle */}

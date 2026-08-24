@@ -46,6 +46,7 @@ export const MobileMenuDrawer: React.FC<MobileMenuDrawerProps> = ({ isOpen, onCl
     stopSpeaking,
     speakText,
     openAITutorWithContext,
+    openLoginModal,
   } = useApp();
 
   if (!isOpen) return null;
@@ -55,6 +56,17 @@ export const MobileMenuDrawer: React.FC<MobileMenuDrawerProps> = ({ isOpen, onCl
 
   const navigateTo = (view: any) => {
     setActiveView(view);
+    if (view === 'landing') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(() => {
+        const heroEl = document.getElementById('home-hero-section');
+        if (heroEl) {
+          heroEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 50);
+    }
     onClose();
   };
 
@@ -79,15 +91,19 @@ export const MobileMenuDrawer: React.FC<MobileMenuDrawerProps> = ({ isOpen, onCl
         >
           {/* Top Header */}
           <div className="p-4 border-b-2 border-amber-200/80 bg-amber-50 flex items-center justify-between">
-            <div className="flex items-center space-x-2.5">
-              <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-black text-xl shadow-xs">
+            <button
+              onClick={() => navigateTo('landing')}
+              className="flex items-center space-x-2.5 text-left group cursor-pointer"
+              title="Return to Home Page"
+            >
+              <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-black text-xl shadow-xs group-hover:scale-105 transition-transform">
                 A
               </div>
               <div>
                 <span className="font-black text-slate-900 text-base">DESHNA AI HUB</span>
                 <p className="text-[11px] font-bold text-amber-800">Learn Smarter • K-12 AI</p>
               </div>
-            </div>
+            </button>
             <button
               onClick={onClose}
               className="p-2 rounded-xl text-slate-600 hover:bg-amber-200/60 transition"
@@ -195,6 +211,20 @@ export const MobileMenuDrawer: React.FC<MobileMenuDrawerProps> = ({ isOpen, onCl
                 </div>
               </div>
             )}
+
+            {/* Login / Onboard Account Button */}
+            <div className="pt-2 border-t border-slate-100">
+              <button
+                onClick={() => {
+                  onClose();
+                  openLoginModal('student');
+                }}
+                className="w-full py-2.5 px-3 bg-amber-400 hover:bg-amber-500 text-slate-950 rounded-xl font-black text-xs flex items-center justify-center space-x-2 shadow-xs transition"
+              >
+                <Users className="w-4 h-4" />
+                <span>+ Login / Register Account</span>
+              </button>
+            </div>
 
             {/* Switch Role Section */}
             <div className="space-y-1 pt-2 border-t border-slate-100">
