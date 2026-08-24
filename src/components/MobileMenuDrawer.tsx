@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
 import { UserRole } from '../types';
+import { LanguageSelector } from './LanguageSelector';
 import {
   X,
   GraduationCap,
@@ -114,24 +115,7 @@ export const MobileMenuDrawer: React.FC<MobileMenuDrawerProps> = ({ isOpen, onCl
           </div>
 
           {/* Body Content */}
-          <div className="p-4 space-y-5 flex-1">
-            {/* Search Trigger Bar */}
-            <button
-              onClick={() => {
-                onClose();
-                setIsSearchOpen(true);
-              }}
-              className="w-full flex items-center justify-between px-3.5 py-2.5 bg-amber-50/80 hover:bg-amber-100/80 border-2 border-amber-200 rounded-2xl text-xs font-bold text-amber-900 transition"
-            >
-              <div className="flex items-center space-x-2">
-                <Search className="w-4 h-4 text-amber-600" />
-                <span>Search curriculum, topics & Qs</span>
-              </div>
-              <kbd className="text-[10px] bg-white px-1.5 py-0.5 rounded font-bold text-amber-800 border border-amber-200">
-                Search
-              </kbd>
-            </button>
-
+          <div className="p-4 space-y-4 flex-1">
             {/* Current Student Profile Banner */}
             {currentRole === 'student' && (
               <div className="p-3.5 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl space-y-3">
@@ -169,6 +153,23 @@ export const MobileMenuDrawer: React.FC<MobileMenuDrawerProps> = ({ isOpen, onCl
                 </div>
               </div>
             )}
+
+            {/* Search Trigger Bar */}
+            <button
+              onClick={() => {
+                onClose();
+                setIsSearchOpen(true);
+              }}
+              className="w-full flex items-center justify-between px-3.5 py-2.5 bg-amber-50/80 hover:bg-amber-100/80 border-2 border-amber-200 rounded-2xl text-xs font-bold text-amber-900 transition"
+            >
+              <div className="flex items-center space-x-2">
+                <Search className="w-4 h-4 text-amber-600" />
+                <span>Search curriculum, topics & Qs</span>
+              </div>
+              <kbd className="text-[10px] bg-white px-1.5 py-0.5 rounded font-bold text-amber-800 border border-amber-200">
+                Search
+              </kbd>
+            </button>
 
             {/* Student Navigation Links */}
             {currentRole === 'student' && (
@@ -211,6 +212,16 @@ export const MobileMenuDrawer: React.FC<MobileMenuDrawerProps> = ({ isOpen, onCl
                 </div>
               </div>
             )}
+
+            {/* Language Setting Section (Collapsible) */}
+            <div className="space-y-1 pt-1">
+              <div className="text-[11px] font-black uppercase tracking-wider text-slate-400 px-2">
+                Language Preferences
+              </div>
+              <div className="p-1 bg-amber-50/90 border-2 border-amber-200 rounded-2xl">
+                <LanguageSelector variant="mobile" />
+              </div>
+            </div>
 
             {/* Login / Onboard Account Button */}
             <div className="pt-2 border-t border-slate-100">

@@ -43,7 +43,7 @@ app.get("/api/health", (_req, res) => {
 // 1. AI Tutor endpoint
 app.post("/api/ai/tutor", async (req, res) => {
   try {
-    const { studentName, grade, board, subject, chapter, topic, message, chatHistory, masteryLevel } = req.body;
+    const { studentName, grade, board, subject, chapter, topic, message, chatHistory, masteryLevel, language } = req.body;
     const ai = getAIClient();
 
     let gradeContext = "";
@@ -55,12 +55,17 @@ app.post("/api/ai/tutor", async (req, res) => {
       gradeContext = "The student is in high school (Grades 9-11). Provide rigorous, exam-aligned explanations with precise terminology, step-by-step mathematical/scientific reasoning, formulas, and conceptual foundations.";
     }
 
+    const langInstruction = language && language !== 'en' 
+      ? `Language Requirement: The student has selected language code '${language}'. Please respond primarily in this language (Bengali, Hindi, Marathi, etc.) with technical/academic keywords in English where helpful for clarity.` 
+      : `Language: English with clear, student-friendly tone.`;
+
     const systemInstruction = `You are the empathetic, expert AI Tutor on DESHNA AI LEARNING HUB, an education platform for Indian school students (Grade 1 to 11).
 Your role:
 - Student: ${studentName || "Student"}, Grade: ${grade}, Board: ${board || "CBSE"}
 - Subject: ${subject || "General"}, Chapter: ${chapter || "Topic"}, Current Topic: ${topic || "General"}
 - Current Topic Mastery: ${masteryLevel || 60}%
 ${gradeContext}
+${langInstruction}
 
 Pedagogical Principles:
 1. Always be encouraging, patient, and motivating. Never shame the student.

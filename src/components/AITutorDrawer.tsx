@@ -29,6 +29,7 @@ export const AITutorDrawer: React.FC = () => {
     currentStudent,
     selectedBoardId,
     speakText,
+    selectedLanguage,
   } = useApp();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -94,6 +95,7 @@ export const AITutorDrawer: React.FC = () => {
           message: query,
           chatHistory: messages.map((m) => ({ role: m.role, text: m.text })),
           masteryLevel: currentStudent.masteryBySubject['g3-math'] || 65,
+          language: selectedLanguage,
         }),
       });
 

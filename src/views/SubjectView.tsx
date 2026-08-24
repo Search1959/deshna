@@ -24,10 +24,15 @@ export const SubjectView: React.FC = () => {
     setActiveView,
     openAITutorWithContext,
     currentStudent,
+    t,
+    localizeSubject,
+    localizeChapter,
   } = useApp();
 
-  const currentSubj = subjects.find((s) => s.id === selectedSubjectId) || subjects[0];
-  const subjectChapters = currentSubj ? getChaptersForSubject(currentSubj.id) : [];
+  const rawSubj = subjects.find((s) => s.id === selectedSubjectId) || subjects[0];
+  const currentSubj = rawSubj ? localizeSubject(rawSubj) : rawSubj;
+  const rawChapters = rawSubj ? getChaptersForSubject(rawSubj.id) : [];
+  const subjectChapters = rawChapters.map(localizeChapter);
   const mastery = currentStudent.masteryBySubject[currentSubj?.id || ''] || 72;
 
   const handleOpenChapter = (chapId: string) => {
@@ -44,14 +49,14 @@ export const SubjectView: React.FC = () => {
           className="hover:text-[#D97706] flex items-center space-x-1 bg-[#FEF3C7] px-2.5 py-1 rounded-lg border border-[#FDE68A]"
         >
           <ChevronLeft className="w-4 h-4" />
-          <span>Dashboard</span>
+          <span>{t('dashboard', 'Dashboard')}</span>
         </button>
         <span className="text-[#B45309]">/</span>
         <button
           onClick={() => setActiveView('classes_catalog')}
           className="hover:text-[#D97706] bg-[#FEF3C7] px-2.5 py-1 rounded-lg border border-[#FDE68A]"
         >
-          Grade {currentSubj?.gradeId} Catalog
+          {t('grade', 'Grade')} {currentSubj?.gradeId} {t('catalog', 'Catalog')}
         </button>
         <span className="text-[#B45309]">/</span>
         <span className="text-[#1F2937] font-black bg-[#D1FAE5] text-[#065F46] px-2.5 py-1 rounded-lg border border-[#6EE7B7]">
@@ -64,7 +69,7 @@ export const SubjectView: React.FC = () => {
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-xl">
             <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-white/20 text-yellow-300 border border-white/30">
-              {currentSubj?.code} • Grade {currentSubj?.gradeId}
+              {currentSubj?.code} • {t('grade', 'Grade')} {currentSubj?.gradeId}
             </span>
             <h1 className="text-xl sm:text-4xl font-black tracking-tight">
               {currentSubj?.name}
@@ -77,7 +82,7 @@ export const SubjectView: React.FC = () => {
           {/* Mastery Stats Box */}
           <div className="bg-white/20 backdrop-blur-md rounded-2xl p-4 border-2 border-white/30 w-full md:w-auto min-w-[200px] text-center space-y-2">
             <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-blue-100">
-              Subject Mastery Level
+              {t('overall_mastery', 'Subject Mastery Level')}
             </span>
             <div className="text-3xl sm:text-4xl font-black text-amber-300">
               {mastery}%
@@ -89,7 +94,7 @@ export const SubjectView: React.FC = () => {
               />
             </div>
             <p className="text-[10px] text-blue-100 font-bold">
-              {subjectChapters.length} Chapters in this curriculum
+              {subjectChapters.length} {t('chapters', 'Chapters')} {t('in_curriculum', 'in this curriculum')}
             </p>
           </div>
         </div>
@@ -99,7 +104,7 @@ export const SubjectView: React.FC = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border-3 border-[#FBBF24] shadow-md">
         <div className="flex items-center space-x-2 text-xs text-[#78350F] font-black">
           <Layers className="w-4 h-4 text-[#D97706]" />
-          <span>Curriculum Chapters ({subjectChapters.length})</span>
+          <span>{t('chapters', 'Curriculum Chapters')} ({subjectChapters.length})</span>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
@@ -114,13 +119,13 @@ export const SubjectView: React.FC = () => {
             className="px-3.5 py-2 bg-[#EFF6FF] hover:bg-[#DBEAFE] text-[#1E40AF] rounded-xl text-xs font-black transition border-2 border-[#DBEAFE] flex items-center space-x-1.5 flex-1 sm:flex-none justify-center"
           >
             <Bot className="w-4 h-4 text-[#2563EB]" />
-            <span>Ask Subject AI Tutor</span>
+            <span>{t('ask_ai_tutor', 'Ask Subject AI Tutor')}</span>
           </button>
           <button
             onClick={() => setActiveView('exam_prep')}
             className="px-3.5 py-2 bg-[#3B82F6] hover:bg-[#2563EB] text-white rounded-xl text-xs font-black transition shadow-sm flex-1 sm:flex-none justify-center"
           >
-            Mock Test
+            {t('mock_tests', 'Mock Test')}
           </button>
         </div>
       </div>
@@ -151,12 +156,12 @@ export const SubjectView: React.FC = () => {
                     <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-[#065F46] font-bold">
                       <span className="flex items-center space-x-1">
                         <Clock className="w-3.5 h-3.5 text-[#059669]" />
-                        <span>~{chap.estMinutes} mins</span>
+                        <span>~{chap.estMinutes} {t('min', 'mins')}</span>
                       </span>
                       <span>•</span>
-                      <span>{chap.learningObjectives.length} Learning Objectives</span>
+                      <span>{chap.learningObjectives.length} {t('learning_objectives', 'Learning Objectives')}</span>
                       <span>•</span>
-                      <span className="text-[#059669] font-black">Mastery: {chapMastery}%</span>
+                      <span className="text-[#059669] font-black">{t('mastery', 'Mastery')}: {chapMastery}%</span>
                     </div>
                   </div>
                 </div>
@@ -168,7 +173,7 @@ export const SubjectView: React.FC = () => {
                     className="flex-1 md:flex-none px-3.5 py-2 bg-[#10B981] hover:bg-[#059669] text-white rounded-xl text-xs font-black transition flex items-center justify-center space-x-1 shadow-xs"
                   >
                     <Play className="w-3.5 h-3.5" />
-                    <span>Study [Learn]</span>
+                    <span>{t('study_now', 'Study [Learn]')}</span>
                   </button>
 
                   <button
@@ -176,7 +181,7 @@ export const SubjectView: React.FC = () => {
                     className="flex-1 md:flex-none px-3.5 py-2 bg-[#FEF3C7] hover:bg-[#FDE68A] text-[#92400E] border-2 border-[#FDE68A] rounded-xl text-xs font-black transition flex items-center justify-center space-x-1"
                   >
                     <Zap className="w-3.5 h-3.5 text-[#D97706]" />
-                    <span>Practice</span>
+                    <span>{t('practice', 'Practice')}</span>
                   </button>
 
                   <button
@@ -190,7 +195,7 @@ export const SubjectView: React.FC = () => {
                     className="flex-1 md:flex-none px-3.5 py-2 bg-[#EFF6FF] hover:bg-[#DBEAFE] text-[#1E40AF] border-2 border-[#DBEAFE] rounded-xl text-xs font-black transition flex items-center justify-center space-x-1"
                   >
                     <Bot className="w-3.5 h-3.5 text-[#2563EB]" />
-                    <span>Ask AI</span>
+                    <span>{t('ask_ai_tutor', 'Ask AI')}</span>
                   </button>
                 </div>
               </div>

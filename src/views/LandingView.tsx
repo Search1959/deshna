@@ -25,6 +25,7 @@ import {
   EyeOff,
   Key,
   Smartphone,
+  Globe,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -42,6 +43,8 @@ export const LandingView: React.FC = () => {
     setCurrentRole,
     addStudent,
     openAITutorWithContext,
+    t,
+    selectedLanguage,
   } = useApp();
 
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
@@ -209,42 +212,46 @@ export const LandingView: React.FC = () => {
             {/* PART 1: CONTENT & PROPOSITIONS (Left Column) */}
             <div className="lg:col-span-7 space-y-6">
               {/* Pill */}
-              <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-white/20 border border-white/30 text-xs font-black text-yellow-200 backdrop-blur-md">
-                <Sparkles className="w-4 h-4 text-yellow-300 animate-pulse" />
-                <span>DESHNA AI LEARNING HUB • FOR GRADES 1 TO 11</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-white/20 border border-white/30 text-xs font-black text-yellow-200 backdrop-blur-md">
+                  <Sparkles className="w-4 h-4 text-yellow-300 animate-pulse" />
+                  <span>{t('hero_badge', 'DESHNA AI LEARNING HUB • FOR GRADES 1 TO 11')}</span>
+                </div>
+                <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-amber-400/30 border border-amber-300/40 text-[11px] font-black text-amber-100 backdrop-blur-md">
+                  <Globe className="w-3.5 h-3.5 text-amber-300" />
+                  <span>{t('hero_languages_badge', '22+ Indian Languages • বাংলা, हिन्दी, मराठी, etc.')}</span>
+                </div>
               </div>
 
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">
-                One AI Learning Platform. <br />
+                {t('hero_headline_1', 'One AI Learning Platform.')} <br />
                 <span className="text-yellow-300 drop-shadow-sm">
-                  Every Grade. Every Subject.
+                  {t('hero_headline_2', 'Every Grade. Every Subject.')}
                 </span> <br />
-                Personalized for Every Student.
+                {t('hero_headline_3', 'Personalized for Every Student.')}
               </h1>
 
               <p className="text-sm sm:text-base text-amber-100 font-bold leading-relaxed max-w-xl">
-                "Learn Smarter. Practice Better. Grow Every Day." From Grade 1 foundational phonics to Grade 11
-                specialized streams across CBSE, ICSE, and State Boards—with adaptive practice, interactive reading coach,
-                and Socratic AI Tutor.
+                {t('hero_description', '"Learn Smarter. Practice Better. Grow Every Day." From Grade 1 foundational phonics to Grade 11 specialized streams across CBSE, ICSE, and State Boards—with adaptive practice, interactive reading coach, and Socratic AI Tutor.')}
               </p>
 
               {/* Feature Highlights Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-w-xl">
                 <div className="flex items-center space-x-2.5 bg-white/10 backdrop-blur-xs px-3.5 py-2 rounded-2xl border border-white/20 text-xs font-bold text-amber-100">
                   <CheckCircle2 className="w-4 h-4 text-yellow-300 shrink-0" />
-                  <span>Grades 1 – 11 Full Curriculum</span>
+                  <span>{t('curriculum_all_grades', 'Grades 1 – 11 Full Curriculum')}</span>
                 </div>
                 <div className="flex items-center space-x-2.5 bg-white/10 backdrop-blur-xs px-3.5 py-2 rounded-2xl border border-white/20 text-xs font-bold text-amber-100">
                   <Bot className="w-4 h-4 text-yellow-300 shrink-0" />
-                  <span>24/7 Socratic AI Tutor</span>
+                  <span>{t('ask_ai_tutor', '24/7 Socratic AI Tutor')}</span>
                 </div>
                 <div className="flex items-center space-x-2.5 bg-white/10 backdrop-blur-xs px-3.5 py-2 rounded-2xl border border-white/20 text-xs font-bold text-amber-100">
                   <Smartphone className="w-4 h-4 text-yellow-300 shrink-0" />
-                  <span>WhatsApp Progress Updates</span>
+                  <span>{t('whatsapp_updates', 'WhatsApp Progress Updates')}</span>
                 </div>
                 <div className="flex items-center space-x-2.5 bg-white/10 backdrop-blur-xs px-3.5 py-2 rounded-2xl border border-white/20 text-xs font-bold text-amber-100">
                   <Zap className="w-4 h-4 text-yellow-300 shrink-0" />
-                  <span>Instant Quiz Evaluation</span>
+                  <span>{t('instant_eval', 'Instant Quiz Evaluation')}</span>
                 </div>
               </div>
 
@@ -256,7 +263,7 @@ export const LandingView: React.FC = () => {
                   className="px-6 py-3.5 rounded-2xl bg-[#FBBF24] hover:bg-[#F59E0B] text-slate-950 font-black text-xs sm:text-sm shadow-lg border-2 border-[#D97706] transition transform active:scale-95 flex items-center space-x-2"
                 >
                   <Layers className="w-4 h-4" />
-                  <span>Explore Classes & Curriculum</span>
+                  <span>{t('explore_all_classes', 'Explore Classes & Curriculum')}</span>
                 </button>
 
                 <button
@@ -265,7 +272,7 @@ export const LandingView: React.FC = () => {
                   className="px-5 py-3.5 rounded-2xl bg-white/15 hover:bg-white/25 border-2 border-white/30 text-white font-black text-xs sm:text-sm transition flex items-center space-x-2"
                 >
                   <Bot className="w-4 h-4 text-yellow-300" />
-                  <span>Ask AI Tutor</span>
+                  <span>{t('ask_ai_tutor', 'Ask AI Tutor')}</span>
                 </button>
               </div>
 

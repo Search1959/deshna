@@ -23,6 +23,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({ onOpenMobile
     isAITutorOpen,
     setIsAITutorOpen,
     currentStudent,
+    t,
   } = useApp();
 
   return (
@@ -43,7 +44,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({ onOpenMobile
           }`}
         >
           <LayoutDashboard className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px] tracking-tight">Study</span>
+          <span className="text-[10px] tracking-tight">{t('study_mode', 'Study')}</span>
         </button>
 
         {/* Classes Catalog */}
@@ -57,7 +58,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({ onOpenMobile
           }`}
         >
           <BookOpen className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px] tracking-tight">Classes</span>
+          <span className="text-[10px] tracking-tight">{t('classes', 'Classes')}</span>
         </button>
 
         {/* Central AI Tutor Highlight Action */}
@@ -93,7 +94,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({ onOpenMobile
           }`}
         >
           <Mic className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px] tracking-tight">Reading</span>
+          <span className="text-[10px] tracking-tight">{t('reading_coach', 'Reading')}</span>
         </button>
 
         {/* Full Menu Drawer Trigger */}

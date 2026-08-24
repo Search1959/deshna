@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { UserRole } from '../types';
+import { LanguageSelector } from './LanguageSelector';
 import {
   Sparkles,
   Bot,
@@ -43,6 +44,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
     stopSpeaking,
     speakText,
     openLoginModal,
+    t,
+    selectedLanguage,
   } = useApp();
 
   const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false);
@@ -96,7 +99,9 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
                 <span className="text-lg sm:text-2xl font-black tracking-tight text-[#1F2937] flex items-center gap-1.5 sm:gap-2">
                   DESHNA <span className="text-[10px] sm:text-[11px] px-2 sm:px-2.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#D97706] font-black border-2 border-[#FDE68A]">AI HUB</span>
                 </span>
-                <p className="text-[11px] sm:text-xs font-bold text-[#92400E] hidden sm:block">Learn Smarter • Practice Better</p>
+                <p className="text-[11px] sm:text-xs font-bold text-[#92400E] hidden sm:block">
+                  {t('tagline', 'Learn Smarter • Practice Better')}
+                </p>
               </div>
             </button>
 
@@ -131,7 +136,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
                     : 'text-[#92400E] hover:bg-white/60 hover:text-[#78350F]'
                 }`}
               >
-                Study Mode
+                {t('study_mode', 'Study Mode')}
               </button>
               <button
                 id="nav-classes"
@@ -142,7 +147,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
                     : 'text-[#92400E] hover:bg-white/60 hover:text-[#78350F]'
                 }`}
               >
-                Classes
+                {t('classes', 'Classes')}
               </button>
               <button
                 id="nav-reading-coach"
@@ -153,7 +158,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
                     : 'text-[#92400E] hover:bg-white/60 hover:text-[#78350F]'
                 }`}
               >
-                Reading Coach
+                {t('reading_coach', 'Reading Coach')}
               </button>
               <button
                 id="nav-vocabulary"
@@ -164,7 +169,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
                     : 'text-[#92400E] hover:bg-white/60 hover:text-[#78350F]'
                 }`}
               >
-                Vocabulary
+                {t('vocabulary', 'Vocabulary')}
               </button>
               <button
                 id="nav-doubts"
@@ -175,7 +180,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
                     : 'text-[#92400E] hover:bg-white/60 hover:text-[#78350F]'
                 }`}
               >
-                Ask Doubt
+                {t('ask_doubt', 'Ask Doubt')}
               </button>
               <button
                 id="nav-revision"
@@ -186,7 +191,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
                     : 'text-[#92400E] hover:bg-white/60 hover:text-[#78350F]'
                 }`}
               >
-                Revision
+                {t('revision', 'Revision')}
               </button>
               <button
                 id="nav-exam-prep"
@@ -197,13 +202,16 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
                     : 'text-[#92400E] hover:bg-white/60 hover:text-[#78350F]'
                 }`}
               >
-                Exam Prep
+                {t('exam_prep', 'Exam Prep')}
               </button>
             </nav>
           )}
 
-          {/* Right: AI Tutor, Login / Onboard, Voice Narration, Role switch */}
+          {/* Right: Language Dropdown, AI Tutor, Login / Onboard, Voice Narration, Role switch */}
           <div className="flex items-center space-x-1.5 sm:space-x-2.5">
+            {/* Indian Languages Dropdown Selector */}
+            <LanguageSelector variant="header" />
+
             {/* AI Tutor Primary Button */}
             <button
               id="ask-ai-tutor-header-btn"
@@ -211,7 +219,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
               className="flex items-center space-x-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-[#F472B6] hover:bg-[#DB2777] text-white rounded-xl text-xs font-black shadow-md transition transform active:scale-95 min-h-[38px]"
             >
               <Bot className="w-4 h-4" />
-              <span className="hidden md:inline">Ask AI Tutor</span>
+              <span className="hidden md:inline">{t('ask_ai_tutor', 'Ask AI Tutor')}</span>
             </button>
 
             {/* Direct Login / Add Account Modal Button */}
@@ -222,7 +230,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
               title="Add or Login Student / Parent / Admin"
             >
               <Users className="w-3.5 h-3.5" />
-              <span>+ Login / Onboard</span>
+              <span>{t('login_onboard', '+ Login / Onboard')}</span>
             </button>
 
             {/* Speech synthesis audio toggle */}

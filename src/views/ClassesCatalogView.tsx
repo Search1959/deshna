@@ -47,6 +47,8 @@ export const ClassesCatalogView: React.FC = () => {
     getChaptersForSubject,
     setActiveView,
     currentStudent,
+    t,
+    localizeSubject,
   } = useApp();
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
@@ -54,7 +56,7 @@ export const ClassesCatalogView: React.FC = () => {
   const activeGrade = grades.find((g) => g.id === selectedGradeId);
 
   // Filter subjects by board, grade, stream using relational mapping
-  const availableSubjects = getFilteredSubjects(selectedBoardId, selectedGradeId, selectedStreamId);
+  const availableSubjects = getFilteredSubjects(selectedBoardId, selectedGradeId, selectedStreamId).map(localizeSubject);
 
   // Apply category filter if active
   const filteredSubjects = availableSubjects.filter((subj) => {
@@ -317,7 +319,7 @@ export const ClassesCatalogView: React.FC = () => {
                     {/* Mastery Bar */}
                     <div className="pt-2">
                       <div className="flex justify-between text-[11px] font-black text-slate-700 mb-1">
-                        <span>Mastery Level</span>
+                        <span>{t('overall_mastery', 'Mastery Level')}</span>
                         <span className="text-[#059669]">{mastery}%</span>
                       </div>
                       <div className="w-full h-2 rounded-full bg-[#E5E7EB] overflow-hidden">
@@ -331,13 +333,13 @@ export const ClassesCatalogView: React.FC = () => {
 
                   <div className="px-6 py-4 bg-[#ECFDF5] border-t-2 border-[#A7F3D0] flex items-center justify-between text-xs">
                     <span className="text-[#065F46] font-bold">
-                      {subj.chaptersCount || 4} Chapters • {subj.totalQuestionsCount || 20}+ Qs
+                      {subj.chaptersCount || 4} {t('chapters', 'Chapters')} • {subj.totalQuestionsCount || 20}+ {t('questions', 'Qs')}
                     </span>
                     <button
                       onClick={() => handleSelectSubject(subj.id)}
                       className="font-black text-[#059669] hover:text-[#047857] flex items-center space-x-1.5 bg-white px-3 py-1.5 rounded-xl border border-[#A7F3D0] shadow-xs cursor-pointer"
                     >
-                      <span>Study Now</span>
+                      <span>{t('study_now', 'Study Now')}</span>
                       <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                     </button>
                   </div>
@@ -348,7 +350,7 @@ export const ClassesCatalogView: React.FC = () => {
         ) : (
           <div className="bg-white p-8 rounded-3xl border-4 border-[#FBBF24] text-center space-y-3">
             <BookOpen className="w-10 h-10 text-[#D97706] mx-auto" />
-            <p className="text-sm font-black text-[#78350F]">No subjects match this filter selection.</p>
+            <p className="text-sm font-black text-[#78350F]">{t('no_data', 'No subjects match this filter selection.')}</p>
             <p className="text-xs text-[#92400E] font-bold">
               Try choosing "All Categories" or switch class to explore more subjects.
             </p>

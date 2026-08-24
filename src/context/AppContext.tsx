@@ -48,6 +48,18 @@ import {
   TEACHER_CLASSES,
   INITIAL_ANALYTICS,
 } from '../data/mockData';
+import {
+  INDIAN_LANGUAGES,
+  UI_TRANSLATIONS,
+  IndianLanguage,
+} from '../data/indianLanguages';
+import {
+  getTranslation,
+  localizeSubject as localizeSubjectFn,
+  localizeChapter as localizeChapterFn,
+  localizeTopic as localizeTopicFn,
+  localizeQuestion as localizeQuestionFn,
+} from '../utils/localization';
 
 export type ActiveView =
   | 'landing'
@@ -203,8 +215,18 @@ interface AppContextType {
   isSearchOpen: boolean;
   setIsSearchOpen: (open: boolean) => void;
 
+  // Language State
+  selectedLanguage: string;
+  setSelectedLanguage: (langCode: string) => void;
+  availableLanguages: IndianLanguage[];
+  t: (key: string, defaultText?: string) => string;
+  localizeSubject: (subject: Subject) => Subject;
+  localizeChapter: (chapter: Chapter) => Chapter;
+  localizeTopic: (topic: Topic) => Topic;
+  localizeQuestion: (question: Question) => Question;
+
   // Speech Helper
-  speakText: (text: string) => void;
+  speakText: (text: string, langCode?: string) => void;
   stopSpeaking: () => void;
   isSpeaking: boolean;
 }
@@ -221,6 +243,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [selectedStreamId, setSelectedStreamId] = useState<StreamType | undefined>(undefined);
   const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>('g3-math');
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>('ch-g3-m5');
+
+  // Indian Languages Selection
+  const [selectedLanguage, setSelectedLanguageState] = useState<string>(() => {
+    try {
+      return localStorage.getItem('deshna_app_language') || 'en';
+    } catch {
+      return 'en';
+    }
+  });
+
+  const setSelectedLanguage = (langCode: string) => {
+    setSelectedLanguageState(langCode);
+    try {
+      localStorage.setItem('deshna_app_language', langCode);
+    } catch (e) {
+      console.warn('Could not save language preference', e);
+    }
+  };
+
+  const t = (key: string, defaultText?: string): string => {
+    return getTranslation(key, selectedLanguage, defaultText);
+  };
+
+  const localizeSubject = (subject: Subject): Subject => {
+    return localizeSubjectFn(subject, selectedLanguage);
+  };
+
+  const localizeChapter = (chapter: Chapter): Chapter => {
+    return localizeChapterFn(chapter, selectedLanguage);
+  };
+
+  const localizeTopic = (topic: Topic): Topic => {
+    return localizeTopicFn(topic, selectedLanguage);
+  };
+
+  const localizeQuestion = (question: Question): Question => {
+    return localizeQuestionFn(question, selectedLanguage);
+  };
 
   // Student & Parent & Financial State
   const [allStudents, setAllStudents] = useState<StudentProfile[]>(() => {
@@ -869,12 +929,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Speech synthesis state
   const [isSpeaking, setIsSpeaking] = useState(false);
 
-  const speakText = (text: string) => {
+  const speakText = (text: string, langCode?: string) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = currentStudent.gradeId <= 3 ? 0.85 : 0.95;
     utterance.pitch = currentStudent.gradeId <= 3 ? 1.1 : 1.0;
+    
+    // Set speech synthesis language
+    const currentLangObj = INDIAN_LANGUAGES.find((l) => l.code === (langCode || selectedLanguage));
+    if (currentLangObj?.speechCode) {
+      utterance.lang = currentLangObj.speechCode;
+    }
+
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
@@ -1323,6 +1390,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         openAITutorWithContext,
         isSearchOpen,
         setIsSearchOpen,
+        selectedLanguage,
+        setSelectedLanguage,
+        availableLanguages: INDIAN_LANGUAGES,
+        t,
+        localizeSubject,
+        localizeChapter,
+        localizeTopic,
+        localizeQuestion,
         speakText,
         stopSpeaking,
         isSpeaking,

@@ -39,6 +39,8 @@ export const StudentDashboard: React.FC = () => {
     speakText,
     getFilteredSubjects,
     getChaptersForSubject,
+    t,
+    localizeSubject,
   } = useApp();
 
   const [isRegeneratingPlan, setIsRegeneratingPlan] = useState(false);
@@ -47,7 +49,7 @@ export const StudentDashboard: React.FC = () => {
     currentStudent.boardId,
     currentStudent.gradeId,
     currentStudent.streamId
-  );
+  ).map(localizeSubject);
   const isPrimary = currentStudent.gradeId <= 5;
   const isSenior = currentStudent.gradeId >= 9;
 
@@ -89,30 +91,30 @@ export const StudentDashboard: React.FC = () => {
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-xl sm:text-3xl font-black tracking-tight text-white">
-                  Hello, {currentStudent.name.split(' ')[0]} 👋
+                  {t('greeting', 'Hello')}, {currentStudent.name.split(' ')[0]} 👋
                 </h1>
                 <span className="text-[10px] sm:text-xs px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-white/20 text-white font-black backdrop-blur-xs border border-white/30">
-                  Grade {currentStudent.gradeId} • {currentStudent.boardId.toUpperCase()}
+                  {t('grade', 'Grade')} {currentStudent.gradeId} • {currentStudent.boardId.toUpperCase()}
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-blue-100 font-bold">
                 {currentStudent.examTarget
                   ? `Target Goal: ${currentStudent.examTarget}`
-                  : 'Ready to learn something exciting today? Your customized AI study plan is ready below.'}
+                  : t('dashboard_welcome_subtitle', 'Ready to learn something exciting today? Your customized AI study plan is ready below.')}
               </p>
             </div>
           </div>
 
           <div className="flex items-center space-x-2 sm:space-x-3 bg-white/20 p-2 sm:p-2.5 rounded-xl sm:rounded-2xl backdrop-blur-md border-2 border-white/30 w-full sm:w-auto justify-around sm:justify-start">
             <div className="text-center px-3 sm:px-4 border-r-2 border-white/30">
-              <span className="text-[10px] uppercase font-black text-blue-100 block">Daily Streak</span>
+              <span className="text-[10px] uppercase font-black text-blue-100 block">{t('streak', 'Daily Streak')}</span>
               <div className="flex items-center justify-center space-x-1 text-amber-300 font-black text-base sm:text-xl">
                 <Flame className="w-4 h-4 sm:w-5 sm:h-5 fill-amber-300" />
-                <span>{currentStudent.streakDays} Days</span>
+                <span>{currentStudent.streakDays} {t('days', 'Days')}</span>
               </div>
             </div>
             <div className="text-center px-3 sm:px-4">
-              <span className="text-[10px] uppercase font-black text-blue-100 block">Learning XP</span>
+              <span className="text-[10px] uppercase font-black text-blue-100 block">{t('points', 'Learning XP')}</span>
               <div className="flex items-center justify-center space-x-1 text-yellow-300 font-black text-base sm:text-xl">
                 <Star className="w-4 h-4 sm:w-5 sm:h-5 fill-yellow-300" />
                 <span>{currentStudent.totalPoints}</span>
@@ -132,7 +134,7 @@ export const StudentDashboard: React.FC = () => {
               <div>
                 <div className="flex items-center space-x-2">
                   <span className="w-3 h-3 rounded-full bg-[#10B981] animate-ping" />
-                  <h2 className="text-lg sm:text-xl font-black text-[#1E3A8A]">Today's AI Learning Plan</h2>
+                  <h2 className="text-lg sm:text-xl font-black text-[#1E3A8A]">{t('today_plan', "Today's AI Learning Plan")}</h2>
                 </div>
                 <p className="text-xs font-bold text-slate-600 mt-0.5">{dailyPlan.summary}</p>
               </div>
@@ -150,7 +152,7 @@ export const StudentDashboard: React.FC = () => {
                         : 'text-[#1E40AF] hover:bg-white/80'
                     }`}
                   >
-                    {mins} min
+                    {mins} {t('min', 'min')}
                   </button>
                 ))}
               </div>
@@ -186,7 +188,7 @@ export const StudentDashboard: React.FC = () => {
                           {item.activityType}
                         </span>
                         <span className="text-[11px] text-slate-500 font-bold">
-                          • {item.durationMinutes} mins
+                          • {item.durationMinutes} {t('min', 'mins')}
                         </span>
                       </div>
                       <p
@@ -208,7 +210,7 @@ export const StudentDashboard: React.FC = () => {
                         : 'bg-[#3B82F6] hover:bg-[#2563EB] text-white'
                     }`}
                   >
-                    <span>{item.completed ? 'Review' : 'Start'}</span>
+                    <span>{item.completed ? t('review', 'Review') : t('start', 'Start')}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -227,8 +229,8 @@ export const StudentDashboard: React.FC = () => {
                 <Mic className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-xs font-black text-[#065F46]">Reading Coach</h4>
-                <p className="text-[11px] font-bold text-[#047857] mt-0.5">Read aloud & WPM</p>
+                <h4 className="text-xs font-black text-[#065F46]">{t('feature_reading_coach_title', 'Reading Coach')}</h4>
+                <p className="text-[11px] font-bold text-[#047857] mt-0.5">{t('read_aloud_wpm', 'Read aloud & WPM')}</p>
               </div>
             </button>
 
@@ -241,8 +243,8 @@ export const StudentDashboard: React.FC = () => {
                 <Brain className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-xs font-black text-[#78350F]">Ask a Doubt</h4>
-                <p className="text-[11px] font-bold text-[#92400E] mt-0.5">Camera & Math solve</p>
+                <h4 className="text-xs font-black text-[#78350F]">{t('feature_doubt_title', 'Ask a Doubt')}</h4>
+                <p className="text-[11px] font-bold text-[#92400E] mt-0.5">{t('camera_math_solve', 'Camera & Math solve')}</p>
               </div>
             </button>
 
@@ -255,8 +257,8 @@ export const StudentDashboard: React.FC = () => {
                 <BookOpen className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-xs font-black text-[#831843]">Vocabulary</h4>
-                <p className="text-[11px] font-bold text-[#9D174D] mt-0.5">Spaced flashcards</p>
+                <h4 className="text-xs font-black text-[#831843]">{t('vocabulary', 'Vocabulary')}</h4>
+                <p className="text-[11px] font-bold text-[#9D174D] mt-0.5">{t('spaced_flashcards', 'Spaced flashcards')}</p>
               </div>
             </button>
 
@@ -269,9 +271,9 @@ export const StudentDashboard: React.FC = () => {
                 <Clock className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-xs font-black text-[#312E81]">Revision Deck</h4>
+                <h4 className="text-xs font-black text-[#312E81]">{t('feature_revision_title', 'Revision Deck')}</h4>
                 <p className="text-[11px] font-bold text-[#3730A3] mt-0.5">
-                  {dueRevisions.length} due today
+                  {dueRevisions.length} {t('due_today', 'due today')}
                 </p>
               </div>
             </button>
@@ -282,13 +284,13 @@ export const StudentDashboard: React.FC = () => {
             <div className="flex items-center justify-between">
               <h3 className="text-base sm:text-lg font-black text-[#065F46] flex items-center space-x-2">
                 <BookOpen className="w-5 h-5 text-[#059669]" />
-                <span>My Subjects • Grade {currentStudent.gradeId}</span>
+                <span>{t('my_subjects', 'My Subjects')} • {t('grade', 'Grade')} {currentStudent.gradeId}</span>
               </h3>
               <button
                 onClick={() => setActiveView('classes_catalog')}
                 className="text-xs font-black text-[#059669] hover:text-[#065F46] bg-[#D1FAE5] px-3 py-1.5 rounded-xl border border-[#A7F3D0] transition"
               >
-                View Full Catalog →
+                {t('view_full_catalog', 'View Full Catalog →')}
               </button>
             </div>
 
@@ -308,7 +310,7 @@ export const StudentDashboard: React.FC = () => {
                       <p className="text-xs font-black text-[#065F46] group-hover:text-[#047857] transition">
                         {subj.name}
                       </p>
-                      <p className="text-[11px] font-bold text-[#059669]">{subj.chaptersCount} Chapters</p>
+                      <p className="text-[11px] font-bold text-[#059669]">{subj.chaptersCount} {t('chapters', 'Chapters')}</p>
                       <div className="flex items-center space-x-2 pt-1">
                         <div className="w-24 h-2 rounded-full bg-[#A7F3D0] overflow-hidden">
                           <div
@@ -333,7 +335,7 @@ export const StudentDashboard: React.FC = () => {
           <div className="bg-[#FEF3C7] rounded-3xl p-6 border-4 border-[#FBBF24] shadow-lg space-y-3.5">
             <div className="flex items-center space-x-2 text-[#92400E]">
               <Sparkles className="w-5 h-5 text-[#D97706]" />
-              <h3 className="text-xs font-black uppercase tracking-wider">AI Learning Insight</h3>
+              <h3 className="text-xs font-black uppercase tracking-wider">{t('ai_tutor', 'AI Learning Insight')}</h3>
             </div>
             <p className="text-xs text-[#78350F] leading-relaxed font-bold">
               "{currentStudent.name.split(' ')[0]} excels at visual shape symmetry (88% mastery). To boost your overall math score, spend 10 minutes
@@ -343,7 +345,7 @@ export const StudentDashboard: React.FC = () => {
               onClick={() => openAITutorWithContext({ subject: 'Mathematics', chapter: 'Fractions', topic: 'Equivalent Fractions' })}
               className="w-full py-2.5 bg-[#F59E0B] hover:bg-[#D97706] text-white rounded-2xl text-xs font-black shadow-md transition flex items-center justify-center space-x-1.5"
             >
-              <span>Ask AI Tutor About Fractions</span>
+              <span>{t('ask_ai_tutor', 'Ask AI Tutor')}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -353,7 +355,7 @@ export const StudentDashboard: React.FC = () => {
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-black uppercase tracking-wider text-[#991B1B] flex items-center space-x-1.5">
                 <AlertCircle className="w-4 h-4 text-[#EF4444]" />
-                <span>Topics Needing Practice</span>
+                <span>{t('topics_needing_practice', 'Topics Needing Practice')}</span>
               </h3>
             </div>
 
@@ -379,7 +381,7 @@ export const StudentDashboard: React.FC = () => {
           <div className="bg-white rounded-3xl border-4 border-[#FBBF24] p-6 shadow-lg space-y-3.5">
             <h3 className="text-xs font-black uppercase tracking-wider text-[#92400E] flex items-center space-x-1.5">
               <Award className="w-4 h-4 text-[#D97706]" />
-              <span>Unlocked Achievements</span>
+              <span>{t('badges_achievements', 'Unlocked Achievements')}</span>
             </h3>
             <div className="grid grid-cols-3 gap-2">
               {badges.slice(0, 3).map((b) => (
