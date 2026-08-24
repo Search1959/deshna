@@ -159,6 +159,66 @@ function deriveTopicTitlesForChapter(chapter: Chapter): TopicTemplate[] {
 }
 
 /**
+ * Helper to ensure options and correct answer positions are uniformly and naturally
+ * distributed across indices 0 (A), 1 (B), 2 (C), and 3 (D), preventing predictable answers.
+ */
+export function balanceQuestionOptions<
+  T extends { options?: string[]; correctAnswer?: string | number | string[]; id?: string; text?: string }
+>(item: T, seedKey?: string | number): T {
+  if (!item.options || item.options.length < 2) return item;
+
+  let originalCorrectIdx = 0;
+  if (typeof item.correctAnswer === 'number') {
+    originalCorrectIdx = item.correctAnswer;
+  } else if (typeof item.correctAnswer === 'string') {
+    const found = item.options.findIndex(
+      (opt) => opt.trim().toLowerCase() === (item.correctAnswer as string).trim().toLowerCase()
+    );
+    if (found !== -1) {
+      originalCorrectIdx = found;
+    } else {
+      const letterCode = (item.correctAnswer as string).toUpperCase().charCodeAt(0) - 65;
+      if (letterCode >= 0 && letterCode < item.options.length) {
+        originalCorrectIdx = letterCode;
+      }
+    }
+  }
+
+  if (originalCorrectIdx < 0 || originalCorrectIdx >= item.options.length) {
+    originalCorrectIdx = 0;
+  }
+
+  // Calculate target position uniformly across 0, 1, 2, 3 using deterministic hashing
+  const str = String(seedKey || item.id || item.text || '') + '_seed_distribute';
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+
+  const targetIndex = Math.abs(hash) % item.options.length;
+
+  if (targetIndex === originalCorrectIdx) {
+    return {
+      ...item,
+      correctAnswer: originalCorrectIdx,
+    };
+  }
+
+  // Swap targetIndex and originalCorrectIdx
+  const newOptions = [...item.options];
+  const temp = newOptions[targetIndex];
+  newOptions[targetIndex] = newOptions[originalCorrectIdx];
+  newOptions[originalCorrectIdx] = temp;
+
+  return {
+    ...item,
+    options: newOptions,
+    correctAnswer: targetIndex,
+  };
+}
+
+/**
  * Generate 8 to 10 high-quality pedagogical questions for a given chapter.
  * Across a subject's 4 chapters, this produces 32 to 40 rich questions (well above the requested minimum of 30).
  */
@@ -177,9 +237,10 @@ export function generateCurriculumQuestionsForChapter(
 
   return questionTemplates.map((item, idx) => {
     const assignedTopic = chapterTopics[idx % Math.max(1, chapterTopics.length)] || chapterTopics[0];
+    const qId = `q-${chapterId}-${idx + 1}`;
 
-    return {
-      id: `q-${chapterId}-${idx + 1}`,
+    const rawQ: Question = {
+      id: qId,
       topicId: assignedTopic?.id || `top-${chapterId}-1`,
       chapterId,
       subjectId,
@@ -195,6 +256,8 @@ export function generateCurriculumQuestionsForChapter(
       stepByStepSolution: item.steps,
       status: 'published',
     };
+
+    return balanceQuestionOptions(rawQ, `${qId}-${idx}-${chapterId}`);
   });
 }
 

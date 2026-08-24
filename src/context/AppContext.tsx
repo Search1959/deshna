@@ -238,11 +238,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [activeView, setActiveView] = useState<ActiveView>('landing');
 
   // Academic selection
-  const [selectedBoardId, setSelectedBoardId] = useState<string>('cbse');
-  const [selectedGradeId, setSelectedGradeId] = useState<number>(3);
+  const [selectedBoardId, setSelectedBoardIdState] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('eduvate_selected_board');
+      if (saved) return saved;
+    } catch {}
+    return 'cbse';
+  });
+
+  const [selectedGradeId, setSelectedGradeIdState] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('eduvate_selected_grade');
+      if (saved) return Number(saved);
+    } catch {}
+    return 7;
+  });
+
   const [selectedStreamId, setSelectedStreamId] = useState<StreamType | undefined>(undefined);
-  const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>('g3-math');
-  const [selectedChapterId, setSelectedChapterId] = useState<string | null>('ch-g3-m5');
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>('g7-math');
+  const [selectedChapterId, setSelectedChapterId] = useState<string | null>('ch-g7-m1');
+
+  const setSelectedGradeId = (gradeId: number) => {
+    setSelectedGradeIdState(gradeId);
+    try {
+      localStorage.setItem('eduvate_selected_grade', String(gradeId));
+    } catch {}
+    setCurrentStudent((prev) => (prev ? { ...prev, gradeId } : prev));
+    setAllStudents((prev) =>
+      prev.map((s) => (s.id === currentStudent?.id ? { ...s, gradeId } : s))
+    );
+  };
+
+  const setSelectedBoardId = (boardId: string) => {
+    setSelectedBoardIdState(boardId);
+    try {
+      localStorage.setItem('eduvate_selected_board', boardId);
+    } catch {}
+    setCurrentStudent((prev) => (prev ? { ...prev, boardId } : prev));
+    setAllStudents((prev) =>
+      prev.map((s) => (s.id === currentStudent?.id ? { ...s, boardId } : s))
+    );
+  };
 
   // Indian Languages Selection
   const [selectedLanguage, setSelectedLanguageState] = useState<string>(() => {

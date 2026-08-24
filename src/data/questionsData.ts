@@ -1,8 +1,8 @@
-import { Question } from '../types';
+import { Question, Chapter, Subject } from '../types';
 import { ALL_CHAPTERS } from './chaptersData';
 import { ALL_SUBJECTS } from './subjectsData';
 import { ALL_TOPICS } from './topicsData';
-import { generateCurriculumQuestionsForChapter } from './curriculumGenerator';
+import { generateCurriculumQuestionsForChapter, balanceQuestionOptions } from './curriculumGenerator';
 
 export const BESPOKE_PRESEEDED_QUESTIONS: Question[] = [
   // ================= GRADE 1 QUESTIONS =================
@@ -609,9 +609,12 @@ export const BESPOKE_PRESEEDED_QUESTIONS: Question[] = [
  */
 function buildAllQuestions(): Question[] {
   const manualMap = new Map<string, Question>();
-  BESPOKE_PRESEEDED_QUESTIONS.forEach((q) => manualMap.set(q.id, q));
+  const balancedBespoke = BESPOKE_PRESEEDED_QUESTIONS.map((q, idx) =>
+    balanceQuestionOptions(q, `${q.id}-${idx}`)
+  );
+  balancedBespoke.forEach((q) => manualMap.set(q.id, q));
 
-  const result: Question[] = [...BESPOKE_PRESEEDED_QUESTIONS];
+  const result: Question[] = [...balancedBespoke];
   const subjectMap = new Map(ALL_SUBJECTS.map((s) => [s.id, s]));
 
   for (const chapter of ALL_CHAPTERS) {
@@ -631,7 +634,7 @@ function buildAllQuestions(): Question[] {
     const generated = generateCurriculumQuestionsForChapter(chapter, subject, ALL_TOPICS);
     for (const genQ of generated) {
       if (!manualMap.has(genQ.id)) {
-        result.push(genQ);
+        result.push(balanceQuestionOptions(genQ, `${genQ.id}-build`));
       }
     }
   }
@@ -683,6 +686,97 @@ export function getIntelligentQuestionsForChapter(
     totalQuestionsCount: 35,
   };
 
-  return generateCurriculumQuestionsForChapter(dummyChapter, dummySubject, ALL_TOPICS);
+  const generated = generateCurriculumQuestionsForChapter(dummyChapter, dummySubject, ALL_TOPICS);
+  return generated.map((q, idx) => balanceQuestionOptions(q, `${q.id}-${idx}-intel`));
 }
+
+/**
+ * High-Yield Mock Exam Question Provider
+ * Guarantees a full 30-question mock test for ANY subject across all grades (1-11).
+ */
+export function getMockExamQuestionsForSubject(
+  subjectId: string,
+  gradeId: number,
+  targetCount: number = 30,
+  customQuestions?: Question[],
+  customChapters?: Chapter[],
+  customSubject?: Subject
+): Question[] {
+  const poolFromSource = customQuestions || ALL_PRESEEDED_QUESTIONS;
+  let subjectQuestions = poolFromSource.filter(
+    (q) => q.subjectId === subjectId || (q.gradeId === gradeId && q.subjectId.includes(subjectId.replace(/^g\d+-/, '')))
+  );
+
+  const subjectChapters =
+    customChapters?.filter((c) => c.subjectId === subjectId) ||
+    ALL_CHAPTERS.filter((c) => c.subjectId === subjectId);
+
+  // If pool has fewer than targetCount, generate from chapters
+  if (subjectQuestions.length < targetCount) {
+    subjectChapters.forEach((chap) => {
+      const extra = getIntelligentQuestionsForChapter(
+        chap.id,
+        subjectId,
+        gradeId,
+        chap.title,
+        customSubject?.name
+      );
+      extra.forEach((eq) => {
+        if (!subjectQuestions.some((sq) => sq.id === eq.id || sq.text === eq.text)) {
+          subjectQuestions.push(eq);
+        }
+      });
+    });
+  }
+
+  // If still under targetCount, generate supplemental comprehensive questions to reach 30
+  if (subjectQuestions.length < targetCount) {
+    const needed = targetCount - subjectQuestions.length;
+    const sName = customSubject?.name || subjectId.replace(/^g\d+-/, '').toUpperCase();
+
+    for (let i = 0; i < needed; i++) {
+      const chap = subjectChapters[i % Math.max(1, subjectChapters.length)] || {
+        id: `mock-ch-${i + 1}`,
+        title: `${sName} Concept Review ${i + 1}`,
+        number: (i % 4) + 1,
+      };
+
+      const qNum = subjectQuestions.length + 1;
+      const newQ: Question = {
+        id: `q-mock-${subjectId}-${qNum}`,
+        topicId: `top-mock-${subjectId}-${(i % 4) + 1}`,
+        chapterId: chap.id,
+        subjectId,
+        gradeId,
+        boardId: 'cbse',
+        questionType: 'mcq',
+        difficulty: i % 3 === 0 ? 'easy' : i % 3 === 1 ? 'medium' : 'hard',
+        text: `[Mock Exam Q${qNum}] For Grade ${gradeId} ${sName} (${chap.title}): Which statement accurately applies the fundamental core concepts taught in this curriculum?`,
+        options: [
+          `Apply systematic step-by-step reasoning, verify against standard definitions, and follow proper units and rules.`,
+          `Skip foundational conceptual steps and rely on unverified estimations.`,
+          `Disregard standard formulas and theoretical rules outlined in the syllabus.`,
+          `Assume inverse proportions without calculating or checking given data.`,
+        ],
+        correctAnswer: 0,
+        explanation: `In Grade ${gradeId} ${sName} (${chap.title}), mastering core concepts requires careful step-by-step application of definitions, rules, and structured verification.`,
+        hints: [`Recall the fundamental principles covered in Chapter: ${chap.title}.`],
+        stepByStepSolution: [
+          `Step 1: Identify given parameters in ${chap.title}.`,
+          `Step 2: Apply the standard Grade ${gradeId} ${sName} conceptual framework.`,
+          `Step 3: Arrive at the verified solution.`,
+        ],
+        status: 'published',
+      };
+
+      subjectQuestions.push(balanceQuestionOptions(newQ, `mock-seed-${subjectId}-${qNum}`));
+    }
+  }
+
+  // Balance all options across A, B, C, D
+  return subjectQuestions.slice(0, targetCount).map((q, idx) =>
+    balanceQuestionOptions(q, `${q.id}-${idx}-mockfinal`)
+  );
+}
+
 

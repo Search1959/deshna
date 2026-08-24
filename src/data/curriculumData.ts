@@ -3,7 +3,7 @@ import { BOARDS, GRADES, ALL_SUBJECTS, MASTER_CATEGORIES, MASTER_STREAMS, DEFAUL
 import { ALL_CHAPTERS } from './chaptersData';
 import { ALL_TOPICS } from './topicsData';
 import { ALL_LESSONS } from './lessonsData';
-import { ALL_PRESEEDED_QUESTIONS, getIntelligentQuestionsForChapter } from './questionsData';
+import { ALL_PRESEEDED_QUESTIONS, getIntelligentQuestionsForChapter, getMockExamQuestionsForSubject } from './questionsData';
 import { ALL_STORIES } from './storiesData';
 import { ALL_VOCABULARY } from './vocabData';
 
@@ -18,4 +18,5 @@ export const INITIAL_LESSONS: Lesson[] = ALL_LESSONS;
 export const INITIAL_QUESTIONS: Question[] = ALL_PRESEEDED_QUESTIONS;
 export const INITIAL_STORIES: ReadingStory[] = ALL_STORIES;
 export const INITIAL_VOCABULARY: VocabularyWord[] = ALL_VOCABULARY;
-export { getIntelligentQuestionsForChapter };
+export { getIntelligentQuestionsForChapter, getMockExamQuestionsForSubject };
+
