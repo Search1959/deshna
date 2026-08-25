@@ -15,6 +15,7 @@ import {
   RevisionItem,
   VocabularyWord,
   ReadingStory,
+  ReadingSessionRecord,
   Badge,
   TeacherClass,
   PlatformAnalytics,
@@ -202,6 +203,11 @@ interface AppContextType {
   updateVocabStatus: (wordId: string, newStatus: VocabularyWord['status']) => void;
   addVocabularyWord: (word: Partial<VocabularyWord>) => void;
 
+  // Authentic Reading Tracking
+  readingRecords: ReadingSessionRecord[];
+  recordReadingAttempt: (session: Omit<ReadingSessionRecord, 'id' | 'date'>) => ReadingSessionRecord;
+  clearReadingRecords: () => void;
+
   // Revision Operations
   markRevisionDone: (revId: string, rating: 'easy' | 'good' | 'hard') => void;
   addTopicToRevision: (topicId: string, topicTitle: string, subjectId: string, subjectName: string) => void;
@@ -352,6 +358,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
 
+  // Authentic Reading Records State
+  const [readingRecords, setReadingRecords] = useState<ReadingSessionRecord[]>(() => {
+    try {
+      const saved = localStorage.getItem('eduvate_reading_records');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [currentStudent, setCurrentStudent] = useState<StudentProfile>(() => allStudents[0] || DEMO_STUDENTS[0]);
 
   // Live Auto-Refresh State
@@ -395,6 +411,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.warn('Financials storage sync error', e);
     }
   }, [financialTransactions]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('eduvate_reading_records', JSON.stringify(readingRecords));
+    } catch (e) {
+      console.warn('Reading records storage sync error', e);
+    }
+  }, [readingRecords]);
 
   // Live Auto-refresh timer every 8 seconds when enabled
   useEffect(() => {
@@ -1219,6 +1243,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  // Authentic Reading Tracking Operations
+  const recordReadingAttempt = (session: Omit<ReadingSessionRecord, 'id' | 'date'>): ReadingSessionRecord => {
+    const newRecord: ReadingSessionRecord = {
+      ...session,
+      id: `read-rec-${Date.now()}`,
+      date: new Date().toISOString(),
+    };
+
+    setReadingRecords((prev) => [newRecord, ...prev]);
+
+    // If the student achieved verified fluency in this reading (wpm > 0 and accuracy >= 40%)
+    if (newRecord.wpm > 0 && newRecord.accuracy >= 40) {
+      setAllStudents((prev) =>
+        prev.map((s) => (s.id === session.studentId ? { ...s, wpmReadingSpeed: newRecord.wpm } : s))
+      );
+      if (currentStudent.id === session.studentId) {
+        setCurrentStudent((prev) => ({ ...prev, wpmReadingSpeed: newRecord.wpm }));
+      }
+    }
+
+    return newRecord;
+  };
+
+  const clearReadingRecords = () => {
+    setReadingRecords([]);
+    try {
+      localStorage.removeItem('eduvate_reading_records');
+    } catch {}
+  };
+
   // CMS functions: Subjects
   const addSubject = (subj: Subject) => setSubjects((list) => [...list, subj]);
   const updateSubject = (subj: Subject) => setSubjects((list) => list.map((s) => (s.id === subj.id ? subj : s)));
@@ -1424,6 +1478,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         resetAcademicToDefaults,
         updateVocabStatus,
         addVocabularyWord,
+        readingRecords,
+        recordReadingAttempt,
+        clearReadingRecords,
         markRevisionDone,
         addTopicToRevision,
         isAITutorOpen,

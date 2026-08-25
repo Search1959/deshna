@@ -352,6 +352,8 @@ export interface ReadingStory {
   gradeId: number;
   title: string;
   genre: string;
+  language?: string; // e.g. 'English', 'Hindi', 'Marathi', etc.
+  languageCode?: string; // e.g. 'en', 'hi', 'mr', 'gu', 'ta', 'bn', 'sa'
   passage: string;
   wordCount: number;
   targetWpm: number;
@@ -369,9 +371,16 @@ export interface ReadingSessionRecord {
   studentId: string;
   storyId: string;
   storyTitle: string;
+  language?: string;
+  languageCode?: string;
   wpm: number;
   accuracy: number;
   durationSeconds: number;
+  wordsSpoken?: number;
+  wordsMatched?: number;
+  totalWords?: number;
+  status?: 'fluent' | 'developing' | 'needs_practice' | 'no_speech' | 'language_mismatch';
+  transcriptSnippet?: string;
   struggledWords: string[];
   date: string;
 }

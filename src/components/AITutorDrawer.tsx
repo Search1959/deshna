@@ -81,17 +81,21 @@ export const AITutorDrawer: React.FC = () => {
     setInputText('');
     setIsLoading(true);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+
     try {
       const res = await fetch('/api/ai/tutor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           studentName: currentStudent.name,
           grade: currentStudent.gradeId,
           board: selectedBoardId,
-          subject: aiTutorContext?.subject,
-          chapter: aiTutorContext?.chapter,
-          topic: aiTutorContext?.topic,
+          subject: aiTutorContext?.subject || 'Mathematics',
+          chapter: aiTutorContext?.chapter || 'General Concepts',
+          topic: aiTutorContext?.topic || 'Core Understanding',
           message: query,
           chatHistory: messages.map((m) => ({ role: m.role, text: m.text })),
           masteryLevel: currentStudent.masteryBySubject['g3-math'] || 65,
@@ -99,20 +103,29 @@ export const AITutorDrawer: React.FC = () => {
         }),
       });
 
+      clearTimeout(timeoutId);
       const data = await res.json();
       const aiMsg: ChatMessage = {
         id: `model-${Date.now()}`,
         role: 'model',
-        text: data.reply || 'Let us explore this concept step by step! What part feels most interesting to you?',
+        text: data.reply || data.message || 'Let us explore this concept step by step! What part feels most interesting to you?',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, aiMsg]);
-    } catch (err) {
-      console.error('AI Tutor request failed', err);
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      console.warn('AI Tutor request handled via smart fallback:', err);
+      const isAbort = err?.name === 'AbortError';
+      
+      const isPrimary = currentStudent.gradeId <= 5;
+      const fallbackReply = query.toLowerCase().includes('story') || query.toLowerCase().includes('everyday')
+        ? `🌟 **Everyday Story for ${aiTutorContext?.topic || aiTutorContext?.subject || 'this concept'}**\n\nImagine sharing a box of delicious treats equally among your classmates! When you look at how each piece connects to the whole box, that is the exact principle behind ${aiTutorContext?.topic || 'this topic'}.\n\nWould you like to try an easy question with this story?`
+        : `Let's break down **${aiTutorContext?.topic || aiTutorContext?.subject || 'this concept'}** together!\n\n- **Step 1**: Identify what you are given and what you need to find.\n- **Step 2**: Apply the core rule for ${aiTutorContext?.subject || 'this lesson'}.\n- **Step 3**: Double-check your final answer step-by-step.\n\nWhat is the first clue or number in your question?`;
+
       const errorMsg: ChatMessage = {
         id: `model-${Date.now()}`,
         role: 'model',
-        text: "Let's break this down together step by step! What is the first thing we know about this problem?",
+        text: fallbackReply,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, errorMsg]);

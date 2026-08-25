@@ -37,9 +37,9 @@ export const COMPREHENSIVE_UI_TRANSLATIONS: Record<string, Record<string, string
     // Landing Page Hero
     hero_badge: 'DESHNA AI LEARNING HUB • FOR GRADES 1 TO 11',
     hero_languages_badge: '22+ Indian Languages • বাংলা, हिन्दी, मराठी, etc.',
-    hero_headline_1: 'One AI Learning Platform.',
-    hero_headline_2: 'Every Grade. Every Subject.',
-    hero_headline_3: 'Personalized for Every Student.',
+    hero_headline_1: 'The first truly all-in-one, affordable AI learning hub',
+    hero_headline_2: 'with mock tests for Grade 1–11',
+    hero_headline_3: 'designed for India, built for Bharat.',
     hero_description: '"Learn Smarter. Practice Better. Grow Every Day." From Grade 1 foundational phonics to Grade 11 specialized streams across CBSE, ICSE, and State Boards—with adaptive practice, interactive reading coach, and 24/7 AI tutor.',
     
     // Auth & Navigation

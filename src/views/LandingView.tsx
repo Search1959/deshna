@@ -223,12 +223,16 @@ export const LandingView: React.FC = () => {
                 </div>
               </div>
 
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">
-                {t('hero_headline_1', 'One AI Learning Platform.')} <br />
-                <span className="text-yellow-300 drop-shadow-sm">
-                  {t('hero_headline_2', 'Every Grade. Every Subject.')}
-                </span> <br />
-                {t('hero_headline_3', 'Personalized for Every Student.')}
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[2.4rem] xl:text-[2.65rem] font-black tracking-tight leading-[1.22] max-w-2xl">
+                <span className="text-white">
+                  {t('hero_headline_1', 'The first truly all-in-one, affordable AI learning hub')}
+                </span>{' '}
+                <span className="text-yellow-300 drop-shadow-xs">
+                  {t('hero_headline_2', 'with mock tests for Grade 1–11')}
+                </span>{' '}
+                <span className="text-amber-100 inline">
+                  – {t('hero_headline_3', 'designed for India, built for Bharat.')}
+                </span>
               </h1>
 
               <p className="text-sm sm:text-base text-amber-100 font-bold leading-relaxed max-w-xl">

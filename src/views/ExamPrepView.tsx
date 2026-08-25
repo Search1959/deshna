@@ -19,6 +19,7 @@ import {
   Filter,
   BarChart3,
   Flame,
+  Shuffle,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { getMockExamQuestionsForSubject } from '../data/curriculumData';
@@ -44,6 +45,7 @@ export const ExamPrepView: React.FC = () => {
   const [selectedGradeFilter, setSelectedGradeFilter] = useState<number>(() => selectedGradeId || currentStudent.gradeId || 7);
   const [testMode, setTestMode] = useState<'selection' | 'running' | 'results'>('selection');
   const [questionCountChoice, setQuestionCountChoice] = useState<number>(30);
+  const [isShuffleEnabled, setIsShuffleEnabled] = useState<boolean>(true);
 
   // Keep selectedGradeFilter strictly in sync whenever selectedGradeId changes globally
   useEffect(() => {
@@ -83,8 +85,32 @@ export const ExamPrepView: React.FC = () => {
     return 0;
   };
 
-  // Load 30 questions when starting test
-  const handleStartTest = (subjectIdToUse: string, count: number = 30) => {
+  // Shuffles both the questions order and the 4 options within each question
+  const shuffleQuestionsAndOptions = (qs: any[]): any[] => {
+    const shuffledQs = [...qs].sort(() => Math.random() - 0.5);
+    return shuffledQs.map((q) => {
+      if (!q.options || q.options.length <= 1) return q;
+
+      const correctIdx = getCorrectOptionIndex(q);
+      const indexedOptions = q.options.map((opt: string, i: number) => ({
+        opt,
+        isCorrect: i === correctIdx,
+      }));
+
+      const shuffledOptions = [...indexedOptions].sort(() => Math.random() - 0.5);
+      const newCorrectIndex = shuffledOptions.findIndex((item) => item.isCorrect);
+
+      return {
+        ...q,
+        options: shuffledOptions.map((item) => item.opt),
+        correctOptionIndex: newCorrectIndex !== -1 ? newCorrectIndex : 0,
+        correctAnswer: newCorrectIndex !== -1 ? newCorrectIndex : 0,
+      };
+    });
+  };
+
+  // Load questions when starting test
+  const handleStartTest = (subjectIdToUse: string, count: number = 30, forceShuffle: boolean = isShuffleEnabled) => {
     const subj = subjects.find((s) => s.id === subjectIdToUse);
     setActiveSubject(subj);
 
@@ -97,8 +123,10 @@ export const ExamPrepView: React.FC = () => {
       subj
     );
 
+    const finalQuestions = forceShuffle ? shuffleQuestionsAndOptions(fullMock) : fullMock;
     const duration = count === 30 ? 1800 : count === 15 ? 900 : 1200; // 30 min for 30 Qs, 15 min for 15 Qs
-    setTestQuestions(fullMock);
+
+    setTestQuestions(finalQuestions);
     setSelectedAnswers({});
     setFlaggedQuestions({});
     setCurrentIdx(0);
@@ -106,6 +134,49 @@ export const ExamPrepView: React.FC = () => {
     setInitialDuration(duration);
     setShowSubmitModal(false);
     setTestMode('running');
+  };
+
+  // Retake test with fresh shuffle or exact replay
+  const handleRetakeTest = (shouldShuffle: boolean = true) => {
+    if (!activeSubject) {
+      setTestMode('selection');
+      return;
+    }
+
+    const count = testQuestions.length || questionCountChoice || 30;
+    const fullMock = getMockExamQuestionsForSubject(
+      activeSubject.id,
+      selectedGradeFilter,
+      count,
+      questions,
+      chapters,
+      activeSubject
+    );
+
+    const questionsToUse = shouldShuffle ? shuffleQuestionsAndOptions(fullMock) : fullMock;
+    const duration = count === 30 ? 1800 : count === 15 ? 900 : 1200;
+
+    setTestQuestions(questionsToUse);
+    setSelectedAnswers({});
+    setFlaggedQuestions({});
+    setCurrentIdx(0);
+    setTimeLeftSeconds(duration);
+    setInitialDuration(duration);
+    setShowSubmitModal(false);
+    setTestMode('running');
+
+    try {
+      confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
+    } catch {}
+  };
+
+  // In-session shuffle
+  const handleShuffleCurrentTest = () => {
+    const shuffled = shuffleQuestionsAndOptions(testQuestions);
+    setTestQuestions(shuffled);
+    setSelectedAnswers({});
+    setFlaggedQuestions({});
+    setCurrentIdx(0);
   };
 
   // Timer countdown
@@ -189,7 +260,7 @@ export const ExamPrepView: React.FC = () => {
             Full-Length Subject Mock Exams (30 Questions)
           </h1>
           <p className="text-xs sm:text-sm text-rose-100 font-medium">
-            Simulate real board and annual test conditions. Each mock exam contains 30 syllabus-aligned, balanced questions covering all chapters with timed countdown, instant review, and step-by-step solutions.
+            Simulate real board and annual test conditions. Each mock exam contains 30 syllabus-aligned, balanced questions covering all chapters with timed countdown, shuffle re-take option, instant review, and step-by-step solutions.
           </p>
         </div>
       </div>
@@ -197,18 +268,18 @@ export const ExamPrepView: React.FC = () => {
       {/* ================= 1. SELECTION MODE ================= */}
       {testMode === 'selection' && (
         <div className="bg-white p-5 sm:p-8 rounded-3xl border-4 border-[#FDA4AF] shadow-lg space-y-6">
-          {/* Grade and Format Filter Toolbar */}
+          {/* Grade, Format, and Shuffle Filter Toolbar */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b-2 border-rose-100">
             <div>
               <h2 className="text-lg sm:text-xl font-black text-slate-900">
                 Choose Subject for 30-Question Mock Test
               </h2>
               <p className="text-xs text-slate-600 font-bold">
-                Select your grade and target subject to start the test.
+                Select your grade, format, and shuffle preference to start.
               </p>
             </div>
 
-            {/* Controls: Grade Switcher & Question Count Choice */}
+            {/* Controls: Grade Switcher, Question Count Choice & Shuffle Toggle */}
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center space-x-1 bg-rose-50 p-1 rounded-xl border border-rose-200">
                 <span className="text-[11px] font-black text-rose-900 px-2">Grade:</span>
@@ -249,6 +320,20 @@ export const ExamPrepView: React.FC = () => {
                   Quick (15 Qs)
                 </button>
               </div>
+
+              {/* Shuffle Toggle Button */}
+              <button
+                onClick={() => setIsShuffleEnabled(!isShuffleEnabled)}
+                className={`text-xs font-black px-3 py-2 rounded-xl border transition flex items-center space-x-1.5 ${
+                  isShuffleEnabled
+                    ? 'bg-purple-100 text-purple-900 border-purple-300 shadow-2xs'
+                    : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                }`}
+                title="Shuffle question sequence and 4-choice options randomly"
+              >
+                <Shuffle className={`w-3.5 h-3.5 ${isShuffleEnabled ? 'text-purple-700' : 'text-slate-500'}`} />
+                <span>Shuffle: {isShuffleEnabled ? 'ON' : 'OFF'}</span>
+              </button>
             </div>
           </div>
 
@@ -285,19 +370,29 @@ export const ExamPrepView: React.FC = () => {
                       <span className="bg-rose-100/80 px-2 py-0.5 rounded-md">
                         ⏱️ {questionCountChoice === 30 ? '30 Mins' : '15 Mins'}
                       </span>
-                      <span className="bg-rose-100/80 px-2 py-0.5 rounded-md">
-                        🎯 4-Choice MCQs
+                      <span className="bg-purple-100 text-purple-900 px-2 py-0.5 rounded-md flex items-center gap-1">
+                        <Shuffle className="w-3 h-3" />
+                        <span>Shuffle Enabled</span>
                       </span>
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => handleStartTest(subj.id, questionCountChoice)}
-                    className="w-full py-3 bg-[#E11D48] hover:bg-[#BE123C] text-white font-black text-xs rounded-2xl transition flex items-center justify-center space-x-2 shadow-md hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    <Play className="w-4 h-4 fill-white" />
-                    <span>Start {questionCountChoice}-Question Mock Exam</span>
-                  </button>
+                  <div className="space-y-2 pt-2">
+                    <button
+                      onClick={() => handleStartTest(subj.id, questionCountChoice, isShuffleEnabled)}
+                      className="w-full py-3 bg-[#E11D48] hover:bg-[#BE123C] text-white font-black text-xs rounded-2xl transition flex items-center justify-center space-x-2 shadow-md hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                      <Play className="w-4 h-4 fill-white" />
+                      <span>Start {questionCountChoice}-Question Mock Exam</span>
+                    </button>
+                    <button
+                      onClick={() => handleStartTest(subj.id, questionCountChoice, true)}
+                      className="w-full py-2 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 font-bold text-[11px] rounded-xl transition flex items-center justify-center space-x-1.5"
+                    >
+                      <Shuffle className="w-3.5 h-3.5 text-purple-700" />
+                      <span>Start with Instant Shuffle</span>
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -338,6 +433,16 @@ export const ExamPrepView: React.FC = () => {
                 </div>
 
                 <div className="flex items-center space-x-2">
+                  {/* Shuffle Button inside test */}
+                  <button
+                    onClick={handleShuffleCurrentTest}
+                    className="px-3 py-1.5 rounded-xl text-xs font-black flex items-center space-x-1.5 transition bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200"
+                    title="Reshuffle question sequence"
+                  >
+                    <Shuffle className="w-3.5 h-3.5 text-purple-700" />
+                    <span className="hidden sm:inline">Shuffle Qs</span>
+                  </button>
+
                   {/* Flag for Review */}
                   <button
                     onClick={() =>
@@ -814,15 +919,39 @@ export const ExamPrepView: React.FC = () => {
               })}
           </div>
 
-          {/* Bottom Action Footer */}
+          {/* Bottom Action Footer with Shuffle & Retake Controls */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t-2 border-emerald-100">
-            <button
-              onClick={() => setTestMode('selection')}
-              className="px-5 py-3 bg-white hover:bg-slate-50 text-slate-800 border-2 border-slate-300 font-black text-xs rounded-2xl shadow-xs transition flex items-center space-x-2"
-            >
-              <RotateCcw className="w-4 h-4" />
-              <span>Choose Another Subject Mock</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Primary Shuffle & Retake Button */}
+              <button
+                id="shuffle-retake-mock-btn"
+                onClick={() => handleRetakeTest(true)}
+                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs rounded-2xl flex items-center space-x-2 shadow-md transition hover:scale-105"
+                title="Shuffle question sequence and option order for a fresh retake"
+              >
+                <Shuffle className="w-4 h-4 text-white" />
+                <span>Shuffle & Retake Test</span>
+              </button>
+
+              {/* Exact Replay Button */}
+              <button
+                id="retake-same-mock-btn"
+                onClick={() => handleRetakeTest(false)}
+                className="px-5 py-3 bg-white hover:bg-slate-50 text-slate-800 border-2 border-slate-300 font-black text-xs rounded-2xl shadow-xs transition flex items-center space-x-2"
+                title="Retake the same questions to improve your score"
+              >
+                <RotateCcw className="w-4 h-4 text-slate-600" />
+                <span>Retake Same Questions</span>
+              </button>
+
+              {/* Return to Subject Selection */}
+              <button
+                onClick={() => setTestMode('selection')}
+                className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-2xl transition"
+              >
+                Choose Another Subject
+              </button>
+            </div>
 
             <button
               onClick={() =>
@@ -843,4 +972,3 @@ export const ExamPrepView: React.FC = () => {
     </div>
   );
 };
-
