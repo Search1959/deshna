@@ -141,20 +141,26 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ variant = 'h
 
       {/* Floating Menu Popover */}
       {isOpen && (
-        <div
-          id="language-dropdown-menu"
-          className="absolute right-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-24px)] bg-white rounded-2xl shadow-2xl border-4 border-amber-300 p-3 z-50 animate-in fade-in zoom-in-95 duration-100"
-        >
-          {/* Header & Search */}
-          <div className="flex items-center justify-between pb-2 border-b border-amber-100">
-            <div className="flex items-center gap-1.5">
-              <Globe className="w-4 h-4 text-amber-600" />
-              <span className="text-xs font-black text-slate-900">Indian Languages</span>
+        <>
+          {/* Mobile backdrop to easily dismiss on outside tap */}
+          <div
+            className="fixed inset-0 bg-black/25 sm:hidden z-40"
+            onClick={() => setIsOpen(false)}
+          />
+          <div
+            id="language-dropdown-menu"
+            className="fixed inset-x-3 top-16 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 w-auto sm:w-80 max-w-[calc(100vw-24px)] bg-white rounded-2xl shadow-2xl border-4 border-amber-300 p-3 z-50 animate-in fade-in zoom-in-95 duration-100"
+          >
+            {/* Header & Search */}
+            <div className="flex items-center justify-between pb-2 border-b border-amber-100">
+              <div className="flex items-center gap-1.5">
+                <Globe className="w-4 h-4 text-amber-600" />
+                <span className="text-xs font-black text-slate-900">Indian Languages</span>
+              </div>
+              <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
+                22 Official + EN
+              </span>
             </div>
-            <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
-              22 Official + EN
-            </span>
-          </div>
 
           {/* Fast Search Input */}
           <div className="relative my-2">
@@ -254,6 +260,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ variant = 'h
             </span>
           </div>
         </div>
+        </>
       )}
     </div>
   );
