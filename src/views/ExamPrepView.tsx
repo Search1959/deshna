@@ -492,19 +492,19 @@ export const ExamPrepView: React.FC = () => {
               {/* Question Text */}
               <div className="space-y-3 pt-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
-                    Difficulty: {currentQ.difficulty || 'Medium'}
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+                    Difficulty: {currentQ?.difficulty || 'Medium'}
                   </span>
-                  {currentQ.topicId && (
+                  {currentQ?.topicId && (
                     <span className="text-[10px] font-bold text-rose-800 bg-rose-50 px-2 py-0.5 rounded-md">
                       Chapter Concept
                     </span>
                   )}
                 </div>
                 <p className="text-base sm:text-lg font-black text-slate-900 leading-relaxed">
-                  {currentQ.text}
+                  {currentQ?.text}
                 </p>
-                {currentQ.diagramUrl && (
+                {currentQ?.diagramUrl && (
                   <div className="p-4 bg-[#FFFBEB] rounded-2xl border-2 border-[#FDE68A] flex justify-center">
                     <img src={currentQ.diagramUrl} alt="Question Diagram" className="max-h-48 object-contain" />
                   </div>
