@@ -4,6 +4,7 @@ import { getIntelligentQuestionsForChapter } from '../data/curriculumData';
 import { getIntelligentLessonForTopic } from '../data/curriculumGenerator';
 import { generateInstantChapterQuestion } from '../utils/dynamicQuestionBuilder';
 import { Question } from '../types';
+import { DetailedAnswerModal } from '../components/DetailedAnswerModal';
 import {
   BookOpen,
   CheckCircle2,
@@ -21,6 +22,7 @@ import {
   RefreshCw,
   Plus,
   Shuffle,
+  HelpCircle,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -63,6 +65,7 @@ export const ChapterView: React.FC = () => {
   const [showHint, setShowHint] = useState(false);
   const [quizScore, setQuizScore] = useState(0);
   const [isQuizCompleted, setIsQuizCompleted] = useState(false);
+  const [showDetailedAnswerModal, setShowDetailedAnswerModal] = useState(false);
 
   // Lookup chapter in static/stored chapters or in dynamically provisioned list
   const rawChapter =
@@ -139,6 +142,7 @@ export const ChapterView: React.FC = () => {
   };
 
   const handleNextQuestion = () => {
+    setShowDetailedAnswerModal(false);
     if (currentQIndex < allChapterQuestions.length - 1) {
       setCurrentQIndex((prev) => prev + 1);
       setSelectedOption(null);
@@ -150,6 +154,7 @@ export const ChapterView: React.FC = () => {
   };
 
   const handleResetPractice = () => {
+    setShowDetailedAnswerModal(false);
     setCurrentQIndex(0);
     setSelectedOption(null);
     setIsAnswerSubmitted(false);
@@ -511,9 +516,22 @@ export const ChapterView: React.FC = () => {
             <div className="space-y-6">
               {/* Question Text */}
               <div className="space-y-3">
-                <p className="text-base sm:text-lg font-bold text-slate-900 leading-relaxed">
-                  {activeQuestion.text}
-                </p>
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                  <p className="text-base sm:text-lg font-bold text-slate-900 leading-relaxed flex-1">
+                    {activeQuestion.text}
+                  </p>
+                  {isAnswerSubmitted && (
+                    <button
+                      id="btn-view-detailed-answer"
+                      onClick={() => setShowDetailedAnswerModal(true)}
+                      title={t('view_detailed_answer_tooltip', 'Click to open detailed explanation window and concept breakdown')}
+                      className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 text-white font-black text-xs shadow-md shadow-blue-500/20 transition-all duration-200 transform hover:scale-105 active:scale-95 cursor-pointer border border-blue-400/40"
+                    >
+                      <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+                      <span>{t('view_detailed_answer', 'View Detailed Answer')}</span>
+                    </button>
+                  )}
+                </div>
                 {activeQuestion.diagramUrl && (
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex justify-center">
                     <img
@@ -591,10 +609,19 @@ export const ChapterView: React.FC = () => {
 
               {/* Step-by-Step Solution Breakdown after submission */}
               {isAnswerSubmitted && (
-                <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-200 space-y-2 text-xs sm:text-sm">
-                  <div className="flex items-center space-x-1.5 font-bold text-blue-900">
-                    <Check className="w-4 h-4 text-emerald-600" />
-                    <span>{t('explanation', 'Step-by-Step Pedagogical Explanation')}:</span>
+                <div className="p-4.5 rounded-2xl bg-blue-50/80 border border-blue-200 space-y-3 text-xs sm:text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center space-x-1.5 font-bold text-blue-900">
+                      <Check className="w-4 h-4 text-emerald-600" />
+                      <span>{t('explanation', 'Step-by-Step Pedagogical Explanation')}:</span>
+                    </div>
+                    <button
+                      onClick={() => setShowDetailedAnswerModal(true)}
+                      className="px-2.5 py-1 bg-white hover:bg-blue-100/90 text-blue-700 font-bold text-xs rounded-lg border border-blue-300 transition flex items-center space-x-1 shadow-2xs cursor-pointer"
+                    >
+                      <BookOpen className="w-3.5 h-3.5 text-blue-600" />
+                      <span>{t('open_deep_dive_window', 'Open Detailed Breakdown Window ↗')}</span>
+                    </button>
                   </div>
                   <p className="text-slate-800 leading-relaxed">{activeQuestion.explanation}</p>
                 </div>
@@ -707,6 +734,18 @@ export const ChapterView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Detailed Answer & Step-by-Step Pedagogical Explanation Window */}
+      <DetailedAnswerModal
+        isOpen={showDetailedAnswerModal}
+        onClose={() => setShowDetailedAnswerModal(false)}
+        question={activeQuestion}
+        selectedOptionIndex={selectedOption}
+        subjectName={currentSubj?.name}
+        chapterTitle={currentChapter?.title}
+        onNextQuestion={handleNextQuestion}
+        hasNextQuestion={currentQIndex < allChapterQuestions.length - 1}
+      />
     </div>
   );
 };

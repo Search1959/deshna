@@ -151,6 +151,9 @@ export const COMPREHENSIVE_UI_TRANSLATIONS: Record<string, Record<string, string
     generate_ai_questions: 'Generate New AI Questions',
     next_chapter: 'Proceed to Next Topic',
     ask_ai_explain: 'Ask AI Tutor to Explain this in Detail',
+    view_detailed_answer: 'View Detailed Answer',
+    view_detailed_answer_tooltip: 'Click to open detailed explanation window and concept breakdown',
+    open_deep_dive_window: 'Open Detailed Breakdown Window ↗',
 
     // General
     search_placeholder: 'Search subjects, chapters, questions...',
@@ -296,6 +299,9 @@ export const COMPREHENSIVE_UI_TRANSLATIONS: Record<string, Record<string, string
     retake_quiz: 'আবার অনুশীলন করুন',
     next_chapter: 'পরবর্তী বিষয়ে এগিয়ে যান',
     ask_ai_explain: 'AI শিক্ষককে বিস্তারিত বোঝাতে বলুন',
+    view_detailed_answer: 'বিস্তারিত উত্তর দেখুন',
+    view_detailed_answer_tooltip: 'বিস্তারিত ব্যাখ্যা ও বিশ্লেষণের উইন্ডো খুলুন',
+    open_deep_dive_window: 'বিস্তারিত উত্তরের উইন্ডো খুলুন ↗',
 
     // General
     search_placeholder: 'বিষয়, অধ্যায়, প্রশ্ন খুঁজুন...',
@@ -447,6 +453,9 @@ export const COMPREHENSIVE_UI_TRANSLATIONS: Record<string, Record<string, string
     generate_ai_questions: 'नए AI प्रश्न बनाएं',
     next_chapter: 'अगले विषय पर जाएं',
     ask_ai_explain: 'AI ट्यूटर से विस्तार से समझाने को कहें',
+    view_detailed_answer: 'विस्तृत उत्तर देखें',
+    view_detailed_answer_tooltip: 'विस्तृत व्याख्या और विश्लेषण विंडो खोलें',
+    open_deep_dive_window: 'विस्तृत व्याख्या विंडो खोलें ↗',
 
     search_placeholder: 'विषय, अध्याय, प्रश्न खोजें...',
     all_grades: 'सभी कक्षाएं',
@@ -559,6 +568,9 @@ export const COMPREHENSIVE_UI_TRANSLATIONS: Record<string, Record<string, string
     retake_quiz: 'पुन्हा सराव करा',
     next_chapter: 'पुढील घटकाकडे जा',
     ask_ai_explain: 'AI मार्गदर्शकाकडून स्पष्टीकरण मागा',
+    view_detailed_answer: 'सविस्तर उत्तर पहा',
+    view_detailed_answer_tooltip: 'सविस्तर स्पष्टीकरण आणि विश्लेषण विंडो उघडा',
+    open_deep_dive_window: 'सविस्तर उत्तराची विंडो उघडा ↗',
 
     search_placeholder: 'विषय, धडे, प्रश्न शोधा...',
     all_grades: 'सर्व इयत्ता',
@@ -671,6 +683,9 @@ export const COMPREHENSIVE_UI_TRANSLATIONS: Record<string, Record<string, string
     retake_quiz: 'మళ్లీ సాధన చేయండి',
     next_chapter: 'తదుపరి అంశానికి వెళ్లండి',
     ask_ai_explain: 'AI ట్యూటర్‌ను వివరంగా వివరించమని అడగండి',
+    view_detailed_answer: 'వివరణాత్మక సమాధానాన్ని చూడండి',
+    view_detailed_answer_tooltip: 'సమగ్ర వివరణ విండోను తెరవండి',
+    open_deep_dive_window: 'సమగ్ర వివరణ విండోను తెరవండి ↗',
 
     search_placeholder: 'సబ్జెక్టులు, అధ్యాయాలు, ప్రశ్నలు శోధించండి...',
     all_grades: 'అన్ని తరగతులు',
@@ -783,6 +798,9 @@ export const COMPREHENSIVE_UI_TRANSLATIONS: Record<string, Record<string, string
     retake_quiz: 'மீண்டும் பயிற்சி செய்க',
     next_chapter: 'அடுத்த தலைப்புக்கு செல்லவும்',
     ask_ai_explain: 'AI ஆசிரியரிடம் விளக்கம் கேட்கவும்',
+    view_detailed_answer: 'விரிவான விடையைக் காண்க',
+    view_detailed_answer_tooltip: 'விரிவான விளக்கம் மற்றும் பகுப்பாய்வு சாளரத்தைத் திறக்கவும்',
+    open_deep_dive_window: 'விரிவான விடை சாளரத்தைத் திறக்கவும் ↗',
 
     search_placeholder: 'பாடங்கள், அத்தியாயங்கள், கேள்விகளைத் தேடுங்கள்...',
     all_grades: 'அனைத்து வகுப்புகள்',
@@ -895,6 +913,9 @@ export const COMPREHENSIVE_UI_TRANSLATIONS: Record<string, Record<string, string
     retake_quiz: 'ફરીથી પ્રેક્ટિસ કરો',
     next_chapter: 'આગળના વિષય પર જાઓ',
     ask_ai_explain: 'AI ટ્યુટર પાસેથી વિગતવાર સમજૂતી મેળવો',
+    view_detailed_answer: 'વિગતવાર ઉત્તર જુઓ',
+    view_detailed_answer_tooltip: 'વિગતવાર સમજૂતી અને વિશ્લેષણ વિન્ડો ખોલો',
+    open_deep_dive_window: 'વિગતવાર ઉત્તર વિન્ડો ખોલો ↗',
 
     search_placeholder: 'વિષયો, પ્રકરણો, પ્રશ્નો શોધો...',
     all_grades: 'તમામ ધોરણો',

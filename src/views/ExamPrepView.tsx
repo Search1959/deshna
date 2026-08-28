@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { DetailedAnswerModal } from '../components/DetailedAnswerModal';
+import { Question } from '../types';
 import {
   Award,
   Clock,
@@ -46,6 +48,11 @@ export const ExamPrepView: React.FC = () => {
   const [testMode, setTestMode] = useState<'selection' | 'running' | 'results'>('selection');
   const [questionCountChoice, setQuestionCountChoice] = useState<number>(30);
   const [isShuffleEnabled, setIsShuffleEnabled] = useState<boolean>(true);
+
+  // Detail Modal State
+  const [modalQuestion, setModalQuestion] = useState<Question | null>(null);
+  const [modalSelectedOption, setModalSelectedOption] = useState<number | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   // Keep selectedGradeFilter strictly in sync whenever selectedGradeId changes globally
   useEffect(() => {
@@ -896,10 +903,23 @@ export const ExamPrepView: React.FC = () => {
 
                     {/* Detailed Pedagogical Explanation */}
                     {q.explanation && (
-                      <div className="p-3 bg-blue-50/90 rounded-xl border border-blue-200 text-xs text-blue-900 space-y-1">
-                        <p className="font-medium">
-                          💡 <strong>Concept Explanation:</strong> {q.explanation}
-                        </p>
+                      <div className="p-3 bg-blue-50/90 rounded-xl border border-blue-200 text-xs text-blue-900 space-y-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="font-medium flex-1">
+                            💡 <strong>Concept Explanation:</strong> {q.explanation}
+                          </p>
+                          <button
+                            onClick={() => {
+                              setModalQuestion(q);
+                              setModalSelectedOption(userAns ?? null);
+                              setIsDetailModalOpen(true);
+                            }}
+                            className="px-2.5 py-1 bg-white hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-lg border border-blue-300 transition flex items-center space-x-1 shadow-2xs cursor-pointer shrink-0"
+                          >
+                            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                            <span>{t('view_detailed_answer', 'Deep-Dive Window ↗')}</span>
+                          </button>
+                        </div>
                         {q.stepByStepSolution && q.stepByStepSolution.length > 0 && (
                           <div className="pt-1.5 border-t border-blue-200/80">
                             <span className="font-black text-[11px] uppercase tracking-wider text-blue-950 block mb-1">
@@ -969,6 +989,16 @@ export const ExamPrepView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Detailed Answer & Step-by-Step Breakdown Modal */}
+      <DetailedAnswerModal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        question={modalQuestion}
+        selectedOptionIndex={modalSelectedOption}
+        subjectName={activeSubject?.name}
+        chapterTitle="Test Review & Concept Diagnostic"
+      />
     </div>
   );
 };
