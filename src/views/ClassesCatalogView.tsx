@@ -61,7 +61,8 @@ export const ClassesCatalogView: React.FC = () => {
   // Apply category filter if active
   const filteredSubjects = availableSubjects.filter((subj) => {
     if (selectedCategoryId === 'all') return true;
-    return subj.categoryId === selectedCategoryId;
+    const cat = categories.find((c) => c.id === selectedCategoryId || c.code === selectedCategoryId);
+    return subj.categoryId === selectedCategoryId || (cat && (subj.categoryId === cat.code || subj.categoryId === cat.id));
   });
 
   const getSubjectIcon = (iconName: string, categoryId?: string) => {
@@ -241,7 +242,7 @@ export const ClassesCatalogView: React.FC = () => {
             All Categories ({availableSubjects.length})
           </button>
           {categories.map((cat) => {
-            const count = availableSubjects.filter((s) => s.categoryId === cat.id).length;
+            const count = availableSubjects.filter((s) => s.categoryId === cat.id || s.categoryId === cat.code).length;
             if (count === 0) return null; // Only show categories with available subjects
             return (
               <button

@@ -91,7 +91,12 @@ export function evaluateReadingAttempt(
   passage: string,
   transcript: string,
   elapsedSeconds: number,
-  languageName: string = 'English'
+  languageName: string = 'English',
+  options?: {
+    voiceActivitySeconds?: number;
+    hasAudioLevel?: boolean;
+    speechServiceAvailable?: boolean;
+  }
 ): ReadingEvaluationResult {
   const rawWords = passage.trim().split(/\s+/).filter(Boolean);
   const passageWords = rawWords.map((raw, index) => ({
@@ -112,6 +117,31 @@ export function evaluateReadingAttempt(
 
   // Case 1: Absolutely no audio / empty transcript
   if (cleanTranscript.length === 0 || totalSpokenWords === 0) {
+    const hadVoiceSound = Boolean(
+      (options?.voiceActivitySeconds && options.voiceActivitySeconds >= 1.5) ||
+      options?.hasAudioLevel
+    );
+
+    if (hadVoiceSound) {
+      const detectedSecs = Math.round(options?.voiceActivitySeconds || elapsedSeconds);
+      return {
+        totalPassageWords,
+        totalSpokenWords: 0,
+        matchedWordsCount: 0,
+        unmatchedWordsCount: totalPassageWords,
+        actualWpm: 0,
+        accuracyPercent: 0,
+        passageCoveragePercent: 0,
+        xpAwarded: 15,
+        status: 'needs_practice',
+        statusTitle: `🎙️ Voice Captured (${detectedSecs}s) • Words Not Transcribed`,
+        diagnosticAdvice: `Your voice was actively detected on the microphone for ${detectedSecs} seconds! However, the speech-to-text engine could not recognize individual ${languageName} words. Try speaking slightly slower, closer to your microphone, or check if your browser requires microphone permission approval.`,
+        wordStatuses: passageWords.map((w) => ({ ...w, status: 'unread' })),
+        spokenTranscript: '',
+        struggledWords: [],
+      };
+    }
+
     return {
       totalPassageWords,
       totalSpokenWords: 0,

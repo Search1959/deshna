@@ -13,6 +13,8 @@ import {
   Volume2,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { DetailedAnswerModal } from '../components/DetailedAnswerModal';
+import { Question } from '../types';
 
 export const RevisionView: React.FC = () => {
   const {
@@ -22,6 +24,7 @@ export const RevisionView: React.FC = () => {
     openAITutorWithContext,
     speakText,
     awardPoints,
+    t,
   } = useApp();
 
   const studentRevisions = revisionItems.filter((r) => r.studentId === currentStudent.id);
@@ -30,14 +33,49 @@ export const RevisionView: React.FC = () => {
 
   const [activeItemIndex, setActiveItemIndex] = useState(0);
   const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
+  const [showDetailedModal, setShowDetailedModal] = useState(false);
 
   const activeItem = dueItems[activeItemIndex] || dueItems[0];
+
+  const syntheticQuestion: Question | null = activeItem
+    ? {
+        id: `rev-${activeItem.id}`,
+        topicId: activeItem.topicId,
+        chapterId: activeItem.topicId,
+        subjectId: activeItem.subjectId,
+        gradeId: currentStudent.gradeId,
+        boardId: currentStudent.boardId,
+        text: `Explain the fundamental principle, core definition, and real-world application of ${activeItem.topicTitle} in ${activeItem.subjectName}.`,
+        options: [
+          `Fundamental textbook principle & standard formula of ${activeItem.topicTitle}`,
+          `Alternative non-standard interpretation`,
+          `Superficial definition without application`,
+          `Historical background notes`,
+        ],
+        correctAnswer: 0,
+        explanation: `Comprehensive memory retention breakdown for ${activeItem.topicTitle}. To retain this long-term, remember the central law/formula, verify units and edge cases, and solve at least 2 practice numericals/derivations.`,
+        hints: [
+          `Spaced repetition interval: ${activeItem.intervalDays} days.`,
+          `Review core definitions and key terms in ${activeItem.subjectName}.`,
+        ],
+        stepByStepSolution: [
+          `Recall the foundational premise of ${activeItem.topicTitle}.`,
+          `Apply the primary formulas or step-by-step mechanisms.`,
+          `Check retention against standard assessment criteria.`,
+        ],
+        examRelevance: `High-frequency topic in school unit exams and annual board examinations. Frequently tested in short-answer and conceptual reasoning questions.`,
+        difficulty: 'medium',
+        questionType: 'mcq',
+        status: 'published',
+      }
+    : null;
 
   const handleRateRetention = (rating: 'hard' | 'good' | 'easy') => {
     if (!activeItem) return;
     markRevisionDone(activeItem.id, rating);
     awardPoints(25, 'Completed spaced revision topic');
     setIsAnswerRevealed(false);
+    setShowDetailedModal(false);
 
     if (activeItemIndex >= dueItems.length - 1) {
       try {
@@ -125,16 +163,26 @@ export const RevisionView: React.FC = () => {
                   <div className="p-5 rounded-2xl bg-[#CFFAFE] border-2 border-[#67E8F9] space-y-2">
                     <div className="flex items-center justify-between text-xs font-black text-[#155E75]">
                       <span>Key Memory Summary:</span>
-                      <button
-                        onClick={() =>
-                          speakText(
-                            `Summary of ${activeItem.topicTitle}. Key concept and formulas are reinforced.`
-                          )
-                        }
-                        className="text-[#0891B2] hover:text-[#155E75] p-1 rounded-lg bg-white/60"
-                      >
-                        <Volume2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center space-x-1.5">
+                        <button
+                          id="btn-revision-detailed-answer"
+                          onClick={() => setShowDetailedModal(true)}
+                          className="px-2.5 py-1 bg-white hover:bg-cyan-100 text-cyan-800 font-black text-[11px] rounded-lg border border-cyan-300 transition flex items-center space-x-1 shadow-2xs cursor-pointer"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                          <span>View Detailed Answer Breakdown ↗</span>
+                        </button>
+                        <button
+                          onClick={() =>
+                            speakText(
+                              `Summary of ${activeItem.topicTitle}. Key concept and formulas are reinforced.`
+                            )
+                          }
+                          className="text-[#0891B2] hover:text-[#155E75] p-1.5 rounded-lg bg-white/80"
+                        >
+                          <Volume2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                     <p className="text-xs sm:text-sm text-slate-800 leading-relaxed font-bold">
                       Reinforce the core definition, proportional reasoning, and error checks before moving on.
@@ -207,6 +255,18 @@ export const RevisionView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Detailed Answer Breakdown Modal */}
+      {showDetailedModal && syntheticQuestion && (
+        <DetailedAnswerModal
+          isOpen={showDetailedModal}
+          onClose={() => setShowDetailedModal(false)}
+          question={syntheticQuestion}
+          selectedOptionIndex={0}
+          subjectName={activeItem?.subjectName}
+          chapterTitle={activeItem?.topicTitle}
+        />
+      )}
     </div>
   );
 };

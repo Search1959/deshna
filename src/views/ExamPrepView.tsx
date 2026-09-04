@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { DetailedAnswerModal } from '../components/DetailedAnswerModal';
 import { Question } from '../types';
@@ -22,6 +22,13 @@ import {
   BarChart3,
   Flame,
   Shuffle,
+  Search,
+  Lightbulb,
+  X,
+  Star,
+  GraduationCap,
+  Volume2,
+  CheckCircle,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { getMockExamQuestionsForSubject } from '../data/curriculumData';
@@ -39,6 +46,9 @@ export const ExamPrepView: React.FC = () => {
     chapters,
     awardPoints,
     openAITutorWithContext,
+    examPrepInitialTab,
+    setExamPrepInitialTab,
+    speakText,
     t,
     localizeSubject,
     localizeQuestion,
@@ -48,6 +58,21 @@ export const ExamPrepView: React.FC = () => {
   const [testMode, setTestMode] = useState<'selection' | 'running' | 'results'>('selection');
   const [questionCountChoice, setQuestionCountChoice] = useState<number>(30);
   const [isShuffleEnabled, setIsShuffleEnabled] = useState<boolean>(true);
+
+  // Tab State: Mock Tests vs Question Search
+  const [activeTab, setActiveTab] = useState<'mock_tests' | 'search_questions'>(() => examPrepInitialTab || 'mock_tests');
+  const [questionSearchQuery, setQuestionSearchQuery] = useState<string>('');
+  const [selectedSubjectFilter, setSelectedSubjectFilter] = useState<string>('all');
+  const [selectedDifficultyFilter, setSelectedDifficultyFilter] = useState<string>('all');
+  const [revealedSolutions, setRevealedSolutions] = useState<Record<string, boolean>>({});
+  const [userPracticeAnswers, setUserPracticeAnswers] = useState<Record<string, number>>({});
+
+  // Synchronize when examPrepInitialTab changes externally
+  useEffect(() => {
+    if (examPrepInitialTab && examPrepInitialTab !== activeTab) {
+      setActiveTab(examPrepInitialTab);
+    }
+  }, [examPrepInitialTab]);
 
   // Detail Modal State
   const [modalQuestion, setModalQuestion] = useState<Question | null>(null);
@@ -212,6 +237,68 @@ export const ExamPrepView: React.FC = () => {
     } catch {}
   };
 
+  const isLowerGrade = selectedGradeFilter <= 5;
+
+  // Grade-wise question pool ensuring every subject has ample practice questions
+  const gradeQuestionsPool = useMemo(() => {
+    let list = questions.filter((q) => q.gradeId === selectedGradeFilter);
+
+    gradeSubjects.forEach((subj) => {
+      const existingCount = list.filter((q) => q.subjectId === subj.id).length;
+      if (existingCount < 6) {
+        const extra = getMockExamQuestionsForSubject(
+          subj.id,
+          selectedGradeFilter,
+          8,
+          questions,
+          chapters,
+          subj
+        );
+        list = [...list, ...extra];
+      }
+    });
+
+    const seen = new Set<string>();
+    return list.filter((q) => {
+      if (!q.id || seen.has(q.id)) return false;
+      seen.add(q.id);
+      return true;
+    });
+  }, [questions, selectedGradeFilter, gradeSubjects, chapters]);
+
+  // Filtered questions based on search query, subject filter, and difficulty
+  const filteredGradeQuestions = useMemo(() => {
+    const qNorm = questionSearchQuery.toLowerCase().trim();
+    return gradeQuestionsPool.filter((q) => {
+      if (selectedSubjectFilter !== 'all' && q.subjectId !== selectedSubjectFilter) {
+        return false;
+      }
+      if (selectedDifficultyFilter !== 'all' && q.difficulty !== selectedDifficultyFilter) {
+        return false;
+      }
+      if (!qNorm) return true;
+      const textMatch = q.text?.toLowerCase().includes(qNorm);
+      const optMatch = q.options?.some((opt: string) => opt.toLowerCase().includes(qNorm));
+      const expMatch = q.explanation?.toLowerCase().includes(qNorm);
+      const hintMatch = q.hints?.some((h: string) => h.toLowerCase().includes(qNorm));
+      return textMatch || optMatch || expMatch || hintMatch;
+    });
+  }, [gradeQuestionsPool, questionSearchQuery, selectedSubjectFilter, selectedDifficultyFilter]);
+
+  const handlePracticeOptionClick = (questionId: string, optionIdx: number, correctIdx: number) => {
+    setUserPracticeAnswers((prev) => ({ ...prev, [questionId]: optionIdx }));
+    if (optionIdx === correctIdx) {
+      awardPoints(5, 'Mastered practice question!');
+      try {
+        confetti({ particleCount: 30, spread: 60, origin: { y: 0.85 } });
+      } catch {}
+    }
+  };
+
+  const toggleRevealSolution = (questionId: string) => {
+    setRevealedSolutions((prev) => ({ ...prev, [questionId]: !prev[questionId] }));
+  };
+
   const calculateScore = () => {
     let correct = 0;
     let incorrect = 0;
@@ -251,170 +338,558 @@ export const ExamPrepView: React.FC = () => {
   const unansweredCount = testQuestions.length - answeredCount;
 
   return (
-    <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-6 sm:space-y-8">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-[#F43F5E] via-[#E11D48] to-[#BE123C] rounded-2xl sm:rounded-3xl p-5 sm:p-8 text-white shadow-xl border-b-6 sm:border-b-8 border-[#9F1239] relative overflow-hidden">
-        <div className="relative z-10 max-w-3xl space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
+    <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-8 space-y-4 sm:space-y-6">
+      {/* Header Banner - Adaptive for Junior (1-5) and Senior (6-11) */}
+      <div
+        className={`rounded-2xl sm:rounded-3xl p-4 sm:p-7 text-white shadow-lg border-b-6 sm:border-b-8 relative overflow-hidden transition-all duration-300 ${
+          isLowerGrade
+            ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 border-emerald-800'
+            : 'bg-gradient-to-r from-[#F43F5E] via-[#E11D48] to-[#BE123C] border-[#9F1239]'
+        }`}
+      >
+        <div className="relative z-10 max-w-3xl space-y-1.5 sm:space-y-2">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-white/20 text-yellow-300 border border-white/30">
-              Board & Comprehensive Mock Center
+              {isLowerGrade ? '🌱 Junior Learning & Practice' : '🎓 Board & Comprehensive Prep'}
             </span>
             <span className="text-[10px] sm:text-xs font-bold px-2.5 py-0.5 rounded-full bg-black/20 text-white border border-white/20">
-              Grade {selectedGradeFilter} • 30 Questions per Subject
+              Grade {selectedGradeFilter} • {activeTab === 'mock_tests' ? 'Mock Tests' : 'Question Bank'}
             </span>
           </div>
-          <h1 className="text-xl sm:text-3xl lg:text-4xl font-black tracking-tight">
-            Full-Length Subject Mock Exams (30 Questions)
+          <h1 className="text-lg sm:text-2xl lg:text-3xl font-black tracking-tight">
+            {isLowerGrade
+              ? `Grade ${selectedGradeFilter} Quizzes & Practice Questions`
+              : `Grade ${selectedGradeFilter} Mock Exams & Question Bank`}
           </h1>
-          <p className="text-xs sm:text-sm text-rose-100 font-medium">
-            Simulate real board and annual test conditions. Each mock exam contains 30 syllabus-aligned, balanced questions covering all chapters with timed countdown, shuffle re-take option, instant review, and step-by-step solutions.
+          <p className="text-xs sm:text-sm text-white/90 font-medium line-clamp-2">
+            {isLowerGrade
+              ? 'Kid-friendly quizzes and instant question practice designed specifically for primary students.'
+              : 'Timed 30-question mock exams, shuffle retakes, and chapter-wise question search for board excellence.'}
           </p>
         </div>
       </div>
 
       {/* ================= 1. SELECTION MODE ================= */}
       {testMode === 'selection' && (
-        <div className="bg-white p-5 sm:p-8 rounded-3xl border-4 border-[#FDA4AF] shadow-lg space-y-6">
-          {/* Grade, Format, and Shuffle Filter Toolbar */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b-2 border-rose-100">
-            <div>
-              <h2 className="text-lg sm:text-xl font-black text-slate-900">
-                Choose Subject for 30-Question Mock Test
-              </h2>
-              <p className="text-xs text-slate-600 font-bold">
-                Select your grade, format, and shuffle preference to start.
-              </p>
+        <div className="space-y-4 sm:space-y-6">
+          {/* Interactive Grade Selector Slider (Grades 1 to 11) */}
+          <div className="bg-white p-3 sm:p-4 rounded-2xl sm:rounded-3xl border-2 sm:border-3 border-amber-200 shadow-sm space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <GraduationCap className="w-4 h-4 text-amber-600" />
+                <span className="text-xs font-black uppercase tracking-wider text-slate-800">
+                  Select Grade
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 hidden sm:inline-block">
+                  {selectedGradeFilter <= 5 ? '🌱 Junior (1-5)' : '🎓 Senior & Board (6-11)'}
+                </span>
+              </div>
+              <span className="text-xs font-black text-rose-600">
+                Grade {selectedGradeFilter} Selected
+              </span>
             </div>
 
-            {/* Controls: Grade Switcher, Question Count Choice & Shuffle Toggle */}
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center space-x-1 bg-rose-50 p-1 rounded-xl border border-rose-200">
-                <span className="text-[11px] font-black text-rose-900 px-2">Grade:</span>
-                <select
-                  value={selectedGradeFilter}
-                  onChange={(e) => handleGradeFilterChange(Number(e.target.value))}
-                  aria-label="Select Grade for Mock Test"
-                  className="bg-white text-xs font-black text-slate-800 py-1.5 px-2.5 rounded-lg border border-rose-200 focus:outline-none focus:ring-2 focus:ring-rose-400"
-                >
-                  {Array.from({ length: 11 }, (_, i) => i + 1).map((g) => (
-                    <option key={g} value={g}>
-                      Grade {g}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex items-center space-x-1 bg-amber-50 p-1 rounded-xl border border-amber-200">
-                <span className="text-[11px] font-black text-amber-900 px-2">Format:</span>
-                <button
-                  onClick={() => setQuestionCountChoice(30)}
-                  className={`text-xs font-black px-2.5 py-1 rounded-lg transition ${
-                    questionCountChoice === 30
-                      ? 'bg-[#E11D48] text-white shadow-xs'
-                      : 'text-slate-700 hover:bg-amber-100'
-                  }`}
-                >
-                  Full Mock (30 Qs)
-                </button>
-                <button
-                  onClick={() => setQuestionCountChoice(15)}
-                  className={`text-xs font-black px-2.5 py-1 rounded-lg transition ${
-                    questionCountChoice === 15
-                      ? 'bg-[#E11D48] text-white shadow-xs'
-                      : 'text-slate-700 hover:bg-amber-100'
-                  }`}
-                >
-                  Quick (15 Qs)
-                </button>
-              </div>
-
-              {/* Shuffle Toggle Button */}
-              <button
-                onClick={() => setIsShuffleEnabled(!isShuffleEnabled)}
-                className={`text-xs font-black px-3 py-2 rounded-xl border transition flex items-center space-x-1.5 ${
-                  isShuffleEnabled
-                    ? 'bg-purple-100 text-purple-900 border-purple-300 shadow-2xs'
-                    : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
-                }`}
-                title="Shuffle question sequence and 4-choice options randomly"
-              >
-                <Shuffle className={`w-3.5 h-3.5 ${isShuffleEnabled ? 'text-purple-700' : 'text-slate-500'}`} />
-                <span>Shuffle: {isShuffleEnabled ? 'ON' : 'OFF'}</span>
-              </button>
+            {/* Horizontal Touch Carousel for Grades */}
+            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-none">
+              {Array.from({ length: 11 }, (_, i) => i + 1).map((g) => {
+                const isSelected = selectedGradeFilter === g;
+                const isGJunior = g <= 5;
+                return (
+                  <button
+                    key={g}
+                    onClick={() => handleGradeFilterChange(g)}
+                    className={`flex-shrink-0 px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center space-x-1.5 ${
+                      isSelected
+                        ? isGJunior
+                          ? 'bg-emerald-600 text-white shadow-md ring-2 ring-emerald-400 scale-105'
+                          : 'bg-[#E11D48] text-white shadow-md ring-2 ring-rose-400 scale-105'
+                        : 'bg-slate-100 text-slate-700 hover:bg-amber-100 border border-slate-200'
+                    }`}
+                  >
+                    <span>{isGJunior ? '🌱' : '🎓'}</span>
+                    <span>Grade {g}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Subjects Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {gradeSubjects.map((subj) => {
-              const subjChapters = chapters.filter((c) => c.subjectId === subj.id);
-              return (
-                <div
-                  key={subj.id}
-                  className="p-5 sm:p-6 rounded-3xl border-4 border-[#FECDD3] bg-gradient-to-br from-[#FFF1F2] to-white hover:from-[#FFE4E6] hover:to-[#FFF1F2] space-y-4 flex flex-col justify-between transition-all duration-200 shadow-sm hover:shadow-md group"
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded-xl bg-white text-[#BE123C] border border-[#FDA4AF] shadow-xs">
-                        Grade {selectedGradeFilter} • {subj.code}
-                      </span>
-                      <span className="text-xs font-bold text-emerald-700 bg-emerald-100/90 px-2.5 py-0.5 rounded-lg">
-                        {questionCountChoice} Questions Ready
-                      </span>
-                    </div>
+          {/* Primary View Switcher: Mock Tests vs Question Search */}
+          <div className="grid grid-cols-2 gap-2 bg-slate-200/70 p-1.5 rounded-2xl border border-slate-300">
+            <button
+              onClick={() => setActiveTab('mock_tests')}
+              className={`py-2.5 sm:py-3 px-3 rounded-xl font-black text-xs sm:text-sm transition flex items-center justify-center space-x-2 ${
+                activeTab === 'mock_tests'
+                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Play className="w-3.5 h-3.5 fill-current text-rose-600" />
+              <span>Mock Tests (Grade {selectedGradeFilter})</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('search_questions')}
+              className={`py-2.5 sm:py-3 px-3 rounded-xl font-black text-xs sm:text-sm transition flex items-center justify-center space-x-2 ${
+                activeTab === 'search_questions'
+                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Search className="w-3.5 h-3.5 text-blue-600" />
+              <span>Search Questions ({filteredGradeQuestions.length})</span>
+            </button>
+          </div>
 
-                    <h3 className="font-black text-lg text-slate-900 group-hover:text-[#BE123C] transition">
-                      {subj.name}
-                    </h3>
-                    <p className="text-xs text-slate-600 font-medium line-clamp-2">
-                      {subj.description || `Comprehensive full mock test spanning all chapters for Grade ${selectedGradeFilter}.`}
-                    </p>
+          {/* ================= TAB 1: MOCK TESTS & QUIZZES ================= */}
+          {activeTab === 'mock_tests' && (
+            <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border-2 sm:border-4 border-[#FDA4AF] shadow-md space-y-4 sm:space-y-6">
+              {/* Format & Shuffle Toolbar */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-rose-100">
+                <div>
+                  <h2 className="text-base sm:text-lg font-black text-slate-900">
+                    {isLowerGrade
+                      ? `Choose Subject for Grade ${selectedGradeFilter} Quiz`
+                      : `Choose Subject for Grade ${selectedGradeFilter} Mock Test`}
+                  </h2>
+                  <p className="text-xs text-slate-600 font-medium">
+                    Tap your subject below to start with instant evaluation and solutions.
+                  </p>
+                </div>
 
-                    <div className="pt-2 flex flex-wrap gap-1.5 text-[11px] text-rose-900 font-bold">
-                      <span className="bg-rose-100/80 px-2 py-0.5 rounded-md">
-                        {subjChapters.length || 4} Chapters Covered
-                      </span>
-                      <span className="bg-rose-100/80 px-2 py-0.5 rounded-md">
-                        ⏱️ {questionCountChoice === 30 ? '30 Mins' : '15 Mins'}
-                      </span>
-                      <span className="bg-purple-100 text-purple-900 px-2 py-0.5 rounded-md flex items-center gap-1">
-                        <Shuffle className="w-3 h-3" />
-                        <span>Shuffle Enabled</span>
-                      </span>
-                    </div>
+                {/* Quick Controls */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center space-x-1 bg-amber-50 p-1 rounded-xl border border-amber-200">
+                    <span className="text-[11px] font-black text-amber-900 px-2">Format:</span>
+                    {isLowerGrade ? (
+                      <>
+                        <button
+                          onClick={() => setQuestionCountChoice(15)}
+                          className={`text-xs font-black px-2.5 py-1 rounded-lg transition ${
+                            questionCountChoice === 15
+                              ? 'bg-emerald-600 text-white shadow-xs'
+                              : 'text-slate-700 hover:bg-amber-100'
+                          }`}
+                        >
+                          15 Qs
+                        </button>
+                        <button
+                          onClick={() => setQuestionCountChoice(5)}
+                          className={`text-xs font-black px-2.5 py-1 rounded-lg transition ${
+                            questionCountChoice === 5
+                              ? 'bg-emerald-600 text-white shadow-xs'
+                              : 'text-slate-700 hover:bg-amber-100'
+                          }`}
+                        >
+                          5 Qs (Quick)
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => setQuestionCountChoice(30)}
+                          className={`text-xs font-black px-2.5 py-1 rounded-lg transition ${
+                            questionCountChoice === 30
+                              ? 'bg-[#E11D48] text-white shadow-xs'
+                              : 'text-slate-700 hover:bg-amber-100'
+                          }`}
+                        >
+                          30 Qs (Full)
+                        </button>
+                        <button
+                          onClick={() => setQuestionCountChoice(15)}
+                          className={`text-xs font-black px-2.5 py-1 rounded-lg transition ${
+                            questionCountChoice === 15
+                              ? 'bg-[#E11D48] text-white shadow-xs'
+                              : 'text-slate-700 hover:bg-amber-100'
+                          }`}
+                        >
+                          15 Qs
+                        </button>
+                      </>
+                    )}
                   </div>
 
-                  <div className="space-y-2 pt-2">
-                    <button
-                      onClick={() => handleStartTest(subj.id, questionCountChoice, isShuffleEnabled)}
-                      className="w-full py-3 bg-[#E11D48] hover:bg-[#BE123C] text-white font-black text-xs rounded-2xl transition flex items-center justify-center space-x-2 shadow-md hover:scale-[1.02] active:scale-[0.98]"
+                  <button
+                    onClick={() => setIsShuffleEnabled(!isShuffleEnabled)}
+                    className={`text-xs font-black px-3 py-1.5 rounded-xl border transition flex items-center space-x-1.5 ${
+                      isShuffleEnabled
+                        ? 'bg-purple-100 text-purple-900 border-purple-300 shadow-2xs'
+                        : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                    }`}
+                    title="Shuffle question sequence and 4-choice options randomly"
+                  >
+                    <Shuffle className={`w-3.5 h-3.5 ${isShuffleEnabled ? 'text-purple-700' : 'text-slate-500'}`} />
+                    <span>Shuffle: {isShuffleEnabled ? 'ON' : 'OFF'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Subject Cards Grid - Card Ways Basis */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+                {gradeSubjects.map((subj) => {
+                  const subjChapters = chapters.filter((c) => c.subjectId === subj.id);
+                  return (
+                    <div
+                      key={subj.id}
+                      className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl border-3 border-[#FECDD3] bg-gradient-to-br from-[#FFF1F2] to-white hover:from-[#FFE4E6] hover:to-[#FFF1F2] space-y-3 flex flex-col justify-between transition-all duration-200 shadow-sm hover:shadow-md group"
                     >
-                      <Play className="w-4 h-4 fill-white" />
-                      <span>Start {questionCountChoice}-Question Mock Exam</span>
-                    </button>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-lg bg-white text-[#BE123C] border border-[#FDA4AF]">
+                            Grade {selectedGradeFilter} • {subj.code}
+                          </span>
+                          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/90 px-2 py-0.5 rounded-md">
+                            {questionCountChoice} Qs Ready
+                          </span>
+                        </div>
+
+                        <h3 className="font-black text-base sm:text-lg text-slate-900 group-hover:text-[#BE123C] transition">
+                          {subj.name}
+                        </h3>
+                        <p className="text-xs text-slate-600 font-medium line-clamp-2">
+                          {subj.description || `Comprehensive mock test spanning all chapters for Grade ${selectedGradeFilter}.`}
+                        </p>
+
+                        <div className="pt-1 flex flex-wrap gap-1.5 text-[10px] sm:text-[11px] text-rose-900 font-bold">
+                          <span className="bg-rose-100/80 px-2 py-0.5 rounded-md">
+                            {subjChapters.length || 4} Chapters Covered
+                          </span>
+                          <span className="bg-rose-100/80 px-2 py-0.5 rounded-md">
+                            ⏱️ {questionCountChoice === 30 ? '30 Mins' : questionCountChoice === 15 ? '15 Mins' : '5 Mins'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Card Action Buttons: ONLY 1 Primary Button on Mobile */}
+                      <div className="space-y-2 pt-2">
+                        <button
+                          onClick={() => handleStartTest(subj.id, questionCountChoice, isShuffleEnabled)}
+                          className={`w-full py-3 text-white font-black text-xs sm:text-sm rounded-2xl transition flex items-center justify-center space-x-2 shadow-md active:scale-95 min-h-[46px] ${
+                            isLowerGrade
+                              ? 'bg-emerald-600 hover:bg-emerald-700'
+                              : 'bg-[#E11D48] hover:bg-[#BE123C]'
+                          }`}
+                        >
+                          <Play className="w-4 h-4 fill-white" />
+                          <span>
+                            {isLowerGrade
+                              ? `Play ${questionCountChoice}-Question Quiz`
+                              : `Start ${questionCountChoice}-Question Mock Exam`}
+                          </span>
+                        </button>
+
+                        {/* Secondary shuffle button is hidden on mobile to keep cards simple and uncluttered */}
+                        <button
+                          onClick={() => handleStartTest(subj.id, questionCountChoice, true)}
+                          className="hidden sm:flex w-full py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 font-bold text-[11px] rounded-xl transition items-center justify-center space-x-1.5"
+                        >
+                          <Shuffle className="w-3.5 h-3.5 text-purple-700" />
+                          <span>Start with Instant Shuffle</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {gradeSubjects.length === 0 && (
+                <div className="text-center py-10 space-y-3 bg-rose-50/50 rounded-2xl border-2 border-dashed border-rose-200">
+                  <BookOpen className="w-10 h-10 text-rose-400 mx-auto" />
+                  <p className="text-sm font-black text-slate-800">No subjects found for Grade {selectedGradeFilter}.</p>
+                  <button
+                    onClick={() => setSelectedGradeFilter(1)}
+                    className="text-xs font-black px-4 py-2 bg-rose-600 text-white rounded-xl shadow-xs"
+                  >
+                    Switch to Grade 1
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ================= TAB 2: SEARCH QUESTIONS & PRACTICE BANK ================= */}
+          {activeTab === 'search_questions' && (
+            <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border-2 sm:border-4 border-blue-200 shadow-md space-y-4 sm:space-y-6">
+              {/* Question Search Header */}
+              <div className="space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div>
+                    <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
+                      <Search className="w-4 h-4 text-blue-600" />
+                      Search Grade {selectedGradeFilter} Questions & Quests
+                    </h2>
+                    <p className="text-xs text-slate-600 font-medium">
+                      Find any question, practice with 1 tap, reveal solutions, or ask AI tutor!
+                    </p>
+                  </div>
+                  <span className="text-xs font-bold text-blue-800 bg-blue-50 px-3 py-1 rounded-xl border border-blue-200 self-start sm:self-auto">
+                    {filteredGradeQuestions.length} Questions Available
+                  </span>
+                </div>
+
+                {/* Search Bar Input */}
+                <div className="relative">
+                  <Search className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={questionSearchQuery}
+                    onChange={(e) => setQuestionSearchQuery(e.target.value)}
+                    placeholder={
+                      isLowerGrade
+                        ? `Search Grade ${selectedGradeFilter} topics (e.g. shapes, numbers, animals, fractions)...`
+                        : `Search Grade ${selectedGradeFilter} concepts (e.g. algebra, photosynthesis, gravitation)...`
+                    }
+                    className="w-full pl-11 pr-10 py-3 bg-slate-50 border-2 border-slate-200 focus:border-blue-500 rounded-2xl text-xs sm:text-sm font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+                  />
+                  {questionSearchQuery && (
                     <button
-                      onClick={() => handleStartTest(subj.id, questionCountChoice, true)}
-                      className="w-full py-2 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 font-bold text-[11px] rounded-xl transition flex items-center justify-center space-x-1.5"
+                      onClick={() => setQuestionSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-full"
                     >
-                      <Shuffle className="w-3.5 h-3.5 text-purple-700" />
-                      <span>Start with Instant Shuffle</span>
+                      <X className="w-4 h-4" />
                     </button>
+                  )}
+                </div>
+
+                {/* Quick Topic Chips */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-[11px]">
+                  <span className="text-slate-400 font-bold flex-shrink-0">Quick Search:</span>
+                  {(isLowerGrade
+                    ? ['Numbers', 'Shapes', 'Animals', 'Addition', 'Vowels', 'Colors']
+                    : ['Algebra', 'Photosynthesis', 'Motion', 'Gravitation', 'Chemical Reactions', 'Grammar']
+                  ).map((term) => (
+                    <button
+                      key={term}
+                      onClick={() => setQuestionSearchQuery(term)}
+                      className={`flex-shrink-0 px-2.5 py-1 rounded-lg font-bold transition ${
+                        questionSearchQuery.toLowerCase() === term.toLowerCase()
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-slate-100 text-slate-700 hover:bg-blue-50 hover:text-blue-700'
+                      }`}
+                    >
+                      {term}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Filter Pills: Subject & Difficulty */}
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  {/* Subject Filter */}
+                  <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl">
+                    <span className="text-[10px] font-black uppercase text-slate-500 px-1.5">Subject:</span>
+                    <button
+                      onClick={() => setSelectedSubjectFilter('all')}
+                      className={`text-[11px] font-bold px-2 py-0.5 rounded-lg transition ${
+                        selectedSubjectFilter === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
+                      }`}
+                    >
+                      All
+                    </button>
+                    {gradeSubjects.map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => setSelectedSubjectFilter(s.id)}
+                        className={`text-[11px] font-bold px-2 py-0.5 rounded-lg transition ${
+                          selectedSubjectFilter === s.id ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600'
+                        }`}
+                      >
+                        {s.name.split(' ')[0]}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Difficulty Filter */}
+                  <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl">
+                    <span className="text-[10px] font-black uppercase text-slate-500 px-1.5">Level:</span>
+                    {['all', 'easy', 'medium', 'hard'].map((lvl) => (
+                      <button
+                        key={lvl}
+                        onClick={() => setSelectedDifficultyFilter(lvl)}
+                        className={`text-[11px] font-bold px-2 py-0.5 rounded-lg capitalize transition ${
+                          selectedDifficultyFilter === lvl ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
+                        }`}
+                      >
+                        {lvl}
+                      </button>
+                    ))}
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              </div>
 
-          {gradeSubjects.length === 0 && (
-            <div className="text-center py-12 space-y-3 bg-rose-50/50 rounded-2xl border-2 border-dashed border-rose-200">
-              <BookOpen className="w-10 h-10 text-rose-400 mx-auto" />
-              <p className="text-sm font-black text-slate-800">No subjects found for Grade {selectedGradeFilter}.</p>
-              <button
-                onClick={() => setSelectedGradeFilter(1)}
-                className="text-xs font-black px-4 py-2 bg-rose-600 text-white rounded-xl shadow-xs"
-              >
-                Switch to Grade 1
-              </button>
+              {/* Questions Cards List - Card Ways Basis */}
+              <div className="space-y-4">
+                {filteredGradeQuestions.slice(0, 30).map((q, idx) => {
+                  const qSubject = subjects.find((s) => s.id === q.subjectId);
+                  const correctIdx = getCorrectOptionIndex(q);
+                  const userChoice = userPracticeAnswers[q.id];
+                  const isAnswered = userChoice !== undefined;
+                  const isCorrect = userChoice === correctIdx;
+                  const isSolutionOpen = revealedSolutions[q.id];
+
+                  return (
+                    <div
+                      key={q.id || idx}
+                      className="bg-white rounded-2xl sm:rounded-3xl border-2 border-slate-200 hover:border-blue-300 p-4 sm:p-6 space-y-3.5 transition shadow-xs"
+                    >
+                      {/* Card Header */}
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-[10px] font-black px-2.5 py-0.5 rounded-lg bg-blue-50 text-blue-800 border border-blue-200">
+                            Q#{idx + 1} • {qSubject?.name || 'Curriculum'}
+                          </span>
+                          <span
+                            className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
+                              q.difficulty === 'easy'
+                                ? 'bg-emerald-50 text-emerald-700'
+                                : q.difficulty === 'hard'
+                                ? 'bg-rose-50 text-rose-700'
+                                : 'bg-amber-50 text-amber-700'
+                            }`}
+                          >
+                            {q.difficulty || 'medium'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center space-x-1">
+                          <button
+                            onClick={() => speakText(q.text)}
+                            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition"
+                            title="Read question aloud"
+                          >
+                            <Volume2 className="w-3.5 h-3.5" />
+                          </button>
+                          {isAnswered && (
+                            <span
+                              className={`text-[11px] font-black px-2 py-0.5 rounded-md flex items-center space-x-1 ${
+                                isCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                              }`}
+                            >
+                              {isCorrect ? (
+                                <>
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+                                  <span>Correct! (+5 pts)</span>
+                                </>
+                              ) : (
+                                <>
+                                  <XCircle className="w-3 h-3 text-rose-700" />
+                                  <span>Incorrect</span>
+                                </>
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Question Text */}
+                      <p className="text-sm sm:text-base font-bold text-slate-900 leading-relaxed">
+                        {q.text}
+                      </p>
+
+                      {/* 4 Interactive Option Choices - Touch Friendly */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                        {(q.options || ['Option A', 'Option B', 'Option C', 'Option D']).map(
+                          (opt: string, optIdx: number) => {
+                            const isThisSelected = userChoice === optIdx;
+                            const isThisCorrect = optIdx === correctIdx;
+                            const optionLetter = String.fromCharCode(65 + optIdx);
+
+                            let btnStyle = 'bg-slate-50 border-slate-200 text-slate-800 hover:bg-blue-50/60 hover:border-blue-300';
+                            if (isAnswered) {
+                              if (isThisSelected && isThisCorrect) {
+                                btnStyle = 'bg-emerald-50 border-emerald-500 text-emerald-950 ring-2 ring-emerald-300';
+                              } else if (isThisSelected && !isThisCorrect) {
+                                btnStyle = 'bg-rose-50 border-rose-500 text-rose-950 ring-2 ring-rose-300';
+                              } else if (isThisCorrect) {
+                                btnStyle = 'bg-emerald-50/60 border-emerald-400 text-emerald-900 border-dashed';
+                              }
+                            }
+
+                            return (
+                              <button
+                                key={optIdx}
+                                onClick={() => handlePracticeOptionClick(q.id, optIdx, correctIdx)}
+                                className={`w-full min-h-[44px] p-3 text-left rounded-xl border-2 text-xs sm:text-sm font-semibold transition-all flex items-center space-x-3 active:scale-[0.98] ${btnStyle}`}
+                              >
+                                <span
+                                  className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0 ${
+                                    isThisSelected && isThisCorrect
+                                      ? 'bg-emerald-600 text-white'
+                                      : isThisSelected && !isThisCorrect
+                                      ? 'bg-rose-600 text-white'
+                                      : 'bg-white border border-slate-300 text-slate-700'
+                                  }`}
+                                >
+                                  {optionLetter}
+                                </span>
+                                <span className="flex-1">{opt}</span>
+                                {isAnswered && isThisCorrect && (
+                                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                                )}
+                                {isAnswered && isThisSelected && !isThisCorrect && (
+                                  <XCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                                )}
+                              </button>
+                            );
+                          }
+                        )}
+                      </div>
+
+                      {/* Card Action Buttons: Only Required Buttons */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                        <button
+                          onClick={() => toggleRevealSolution(q.id)}
+                          className="px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 transition flex items-center space-x-1.5 min-h-[40px]"
+                        >
+                          <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+                          <span>{isSolutionOpen ? 'Hide Solution' : 'View Solution & Steps'}</span>
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            openAITutorWithContext({
+                              subject: qSubject?.name || `Grade ${selectedGradeFilter}`,
+                              chapter: q.text,
+                              topic: `Explain question: ${q.text}`,
+                            })
+                          }
+                          className="px-3 py-1.5 text-xs font-bold rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 transition flex items-center space-x-1.5 min-h-[40px]"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                          <span>Ask AI Tutor</span>
+                        </button>
+                      </div>
+
+                      {/* Step-by-Step Solution Breakdown */}
+                      {isSolutionOpen && (
+                        <div className="p-3.5 bg-amber-50/70 rounded-xl border border-amber-200 space-y-1.5 text-xs text-amber-950 animate-in fade-in duration-150">
+                          <div className="font-black text-amber-900 flex items-center space-x-1.5">
+                            <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Correct Answer: Option {String.fromCharCode(65 + correctIdx)} ({q.options?.[correctIdx] || ''})</span>
+                          </div>
+                          <p className="font-medium text-slate-700 leading-relaxed">
+                            {q.explanation || 'According to the curriculum standard, this concept applies the fundamental definition taught in this chapter.'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {filteredGradeQuestions.length === 0 && (
+                  <div className="text-center py-10 space-y-3 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                    <Search className="w-10 h-10 text-slate-300 mx-auto" />
+                    <p className="text-sm font-black text-slate-800">
+                      No questions found matching "{questionSearchQuery}" for Grade {selectedGradeFilter}.
+                    </p>
+                    <button
+                      onClick={() => setQuestionSearchQuery('')}
+                      className="text-xs font-black px-4 py-2 bg-blue-600 text-white rounded-xl shadow-xs"
+                    >
+                      Clear Search Query
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

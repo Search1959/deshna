@@ -6,6 +6,7 @@ import { MobileMenuDrawer } from './components/MobileMenuDrawer';
 import { AITutorDrawer } from './components/AITutorDrawer';
 import { SearchModal } from './components/SearchModal';
 import { LoginModal } from './components/LoginModal';
+import { StudentHelpModal } from './components/StudentHelpModal';
 import { LandingView } from './views/LandingView';
 import { ClassesCatalogView } from './views/ClassesCatalogView';
 import { StudentDashboard } from './views/StudentDashboard';
@@ -88,6 +89,7 @@ const AppShell: React.FC = () => {
       <AITutorDrawer />
       <SearchModal />
       <LoginModal />
+      <StudentHelpModal />
     </div>
   );
 };

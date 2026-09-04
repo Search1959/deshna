@@ -2,12 +2,10 @@ import React from 'react';
 import { useApp } from '../context/AppContext';
 import {
   LayoutDashboard,
-  BookOpen,
   Bot,
-  Mic,
   Menu,
-  Sparkles,
   Zap,
+  Search,
 } from 'lucide-react';
 
 interface MobileNavigationProps {
@@ -23,8 +21,13 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({ onOpenMobile
     isAITutorOpen,
     setIsAITutorOpen,
     currentStudent,
+    selectedGradeId,
+    openExamPrep,
+    examPrepInitialTab,
     t,
   } = useApp();
+
+  const targetGrade = selectedGradeId || currentStudent?.gradeId || 1;
 
   return (
     <nav
@@ -33,7 +36,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({ onOpenMobile
       className="xl:hidden fixed bottom-0 left-0 right-0 z-[999] bg-white/95 backdrop-blur-lg border-t-2 border-amber-300 shadow-[0_-4px_24px_rgba(0,0,0,0.15)] px-2 py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]"
     >
       <div className="max-w-md mx-auto grid grid-cols-5 gap-1 items-center">
-        {/* Study Dashboard */}
+        {/* 1. Study Dashboard */}
         <button
           id="mobile-nav-dashboard"
           onClick={() => setActiveView(currentRole === 'student' ? 'student_dashboard' : activeView)}
@@ -47,21 +50,21 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({ onOpenMobile
           <span className="text-[10px] tracking-tight">{t('study_mode', 'Study')}</span>
         </button>
 
-        {/* Classes Catalog */}
+        {/* 2. Mock Tests (Grade-Wise) */}
         <button
-          id="mobile-nav-classes"
-          onClick={() => setActiveView('classes_catalog')}
+          id="mobile-nav-mocks"
+          onClick={() => openExamPrep('mock_tests', targetGrade)}
           className={`flex flex-col items-center justify-center py-1 px-1 rounded-xl transition min-h-[46px] ${
-            activeView === 'classes_catalog' || activeView === 'subject_detail' || activeView === 'chapter_detail'
-              ? 'text-amber-700 font-black bg-amber-50'
+            activeView === 'exam_prep' && examPrepInitialTab !== 'search_questions'
+              ? 'text-rose-700 font-black bg-rose-50'
               : 'text-slate-600 hover:text-slate-900 font-bold'
           }`}
         >
-          <BookOpen className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px] tracking-tight">{t('classes', 'Classes')}</span>
+          <Zap className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] tracking-tight">Mock Tests</span>
         </button>
 
-        {/* Central AI Tutor Highlight Action */}
+        {/* 3. Central AI Tutor Highlight Action */}
         <div className="flex justify-center -mt-5">
           <button
             id="mobile-nav-ai-tutor"
@@ -83,21 +86,21 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({ onOpenMobile
           </button>
         </div>
 
-        {/* Reading Coach */}
+        {/* 4. Search Questions (Grade-Wise) */}
         <button
-          id="mobile-nav-reading"
-          onClick={() => setActiveView('reading_coach')}
+          id="mobile-nav-search-questions"
+          onClick={() => openExamPrep('search_questions', targetGrade)}
           className={`flex flex-col items-center justify-center py-1 px-1 rounded-xl transition min-h-[46px] ${
-            activeView === 'reading_coach' || activeView === 'vocabulary_vault'
-              ? 'text-amber-700 font-black bg-amber-50'
+            activeView === 'exam_prep' && examPrepInitialTab === 'search_questions'
+              ? 'text-blue-700 font-black bg-blue-50'
               : 'text-slate-600 hover:text-slate-900 font-bold'
           }`}
         >
-          <Mic className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px] tracking-tight">{t('reading_coach', 'Reading')}</span>
+          <Search className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] tracking-tight">Search Qs</span>
         </button>
 
-        {/* Full Menu Drawer Trigger */}
+        {/* 5. Menu Trigger */}
         <button
           id="mobile-nav-menu"
           onClick={onOpenMobileMenu}

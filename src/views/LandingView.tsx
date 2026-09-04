@@ -26,6 +26,9 @@ import {
   Key,
   Smartphone,
   Globe,
+  Play,
+  Search,
+  ChevronRight,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -45,7 +48,22 @@ export const LandingView: React.FC = () => {
     openAITutorWithContext,
     t,
     selectedLanguage,
+    currentStudent,
+    selectedGradeId,
+    openExamPrep,
+    setSelectedSubjectId,
+    getFilteredSubjects,
+    localizeSubject,
+    openLoginModal,
   } = useApp();
+
+  const currentGrade = selectedGradeId || currentStudent?.gradeId || 3;
+  const isJunior = currentGrade <= 5;
+  const studentSubjects = getFilteredSubjects(
+    currentStudent?.boardId || 'cbse',
+    currentGrade,
+    currentStudent?.streamId
+  ).map(localizeSubject);
 
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
@@ -202,8 +220,374 @@ export const LandingView: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#FFFBEB] text-[#1F2937] selection:bg-[#F59E0B] selection:text-white">
-      {/* Top Banner Hero: 2-Column Split (Part 1: Content & Props | Part 2: System Admin & User Login Portal) */}
-      <section id="home-hero-section" className="relative overflow-hidden pt-10 pb-16 lg:pt-14 lg:pb-24 bg-gradient-to-r from-[#D97706] via-[#B45309] to-[#78350F] text-white border-b-8 border-[#92400E]">
+      {/* ========================================================================= */}
+      {/* 📱 MOBILE FIRST-SCREEN (100% CARD-BASED & STUDENT-FRIENDLY) - Viewport < lg*/}
+      {/* ========================================================================= */}
+      <div className="block lg:hidden px-3.5 pt-3 pb-8 space-y-4 max-w-lg mx-auto">
+        {/* 1. Student Greeting & Quick Status Card */}
+        <div
+          className={`p-4 rounded-3xl text-white shadow-md relative overflow-hidden transition-all ${
+            isJunior
+              ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 border-b-4 border-emerald-800'
+              : 'bg-gradient-to-r from-indigo-600 via-blue-600 to-purple-600 border-b-4 border-indigo-900'
+          }`}
+        >
+          <div className="relative z-10 flex items-center justify-between">
+            <div className="flex items-center space-x-3 min-w-0">
+              <img
+                src={
+                  currentStudent?.avatar ||
+                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150'
+                }
+                alt={currentStudent?.name || 'Student'}
+                className="w-12 h-12 rounded-2xl object-cover ring-2 ring-white/50 shrink-0"
+              />
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h1 className="text-base font-black truncate text-white">
+                    {t('greeting', 'Namaste')}, {(currentStudent?.name || 'Student').split(' ')[0]}! 👋
+                  </h1>
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/20 text-yellow-300 border border-white/30 shrink-0">
+                    {isJunior ? '🌱 Junior (1–5)' : '🎓 Senior (6–11)'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-white/90 font-semibold truncate">
+                  Grade {currentGrade} • {(currentStudent?.boardId || 'cbse').toUpperCase()} Curriculum
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2 shrink-0 bg-white/20 px-2.5 py-1.5 rounded-xl backdrop-blur-xs border border-white/30">
+              <div className="text-center">
+                <div className="flex items-center space-x-1 text-amber-300 font-black text-xs">
+                  <Flame className="w-3.5 h-3.5 fill-amber-300" />
+                  <span>{currentStudent?.streakDays || 3}d</span>
+                </div>
+              </div>
+              <div className="h-4 w-px bg-white/30" />
+              <div className="text-center">
+                <div className="flex items-center space-x-1 text-yellow-300 font-black text-xs">
+                  <Star className="w-3.5 h-3.5 fill-yellow-300" />
+                  <span>{currentStudent?.totalPoints || 120}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 2. Interactive Class Selector Card Strip */}
+        <div className="bg-white p-3.5 rounded-2xl border-2 border-amber-200 shadow-2xs space-y-2">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-black text-slate-800 flex items-center gap-1.5">
+              <GraduationCap className="w-4 h-4 text-amber-600" />
+              <span>Select Your Class:</span>
+            </span>
+            <span className="font-bold text-rose-600 text-[11px] bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
+              Active: Grade {currentGrade}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+            {Array.from({ length: 11 }, (_, i) => i + 1).map((g) => {
+              const isSel = currentGrade === g;
+              const isGJun = g <= 5;
+              return (
+                <button
+                  key={g}
+                  onClick={() => setSelectedGradeId(g)}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center space-x-1 cursor-pointer ${
+                    isSel
+                      ? isGJun
+                        ? 'bg-emerald-600 text-white shadow-xs ring-2 ring-emerald-400'
+                        : 'bg-[#E11D48] text-white shadow-xs ring-2 ring-rose-400'
+                      : 'bg-slate-100 text-slate-700 hover:bg-amber-50 border border-slate-200'
+                  }`}
+                >
+                  <span>{isGJun ? '🌱' : '🎓'}</span>
+                  <span>Gr {g}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 3. CARD 1: Grade-Adaptive Mock Tests & Quizzes */}
+        <div
+          className={`p-4 rounded-2xl border-3 shadow-xs space-y-3 transition-all ${
+            isJunior
+              ? 'bg-gradient-to-br from-emerald-50 via-teal-50/40 to-white border-emerald-300'
+              : 'bg-gradient-to-br from-rose-50 via-pink-50/40 to-white border-rose-300'
+          }`}
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="space-y-1">
+              <span
+                className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
+                  isJunior
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : 'bg-rose-100 text-rose-800'
+                }`}
+              >
+                {isJunior ? '🌱 Fun Quiz Zone' : '🎓 Board Exam Center'}
+              </span>
+              <h2 className="font-black text-base text-slate-900 leading-tight">
+                {isJunior
+                  ? `🌱 Grade ${currentGrade} Quizzes & Practice`
+                  : `🎓 Grade ${currentGrade} 30-Question Mock Tests`}
+              </h2>
+              <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                {isJunior
+                  ? 'Interactive visual quizzes with audio explanations and instant star badges!'
+                  : 'Full-length 30-question timed practice papers with step-by-step solutions.'}
+              </p>
+            </div>
+            <div
+              className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-xs ${
+                isJunior ? 'bg-emerald-600 text-white' : 'bg-[#E11D48] text-white'
+              }`}
+            >
+              <Zap className="w-6 h-6 fill-white" />
+            </div>
+          </div>
+
+          <button
+            onClick={() => openExamPrep('mock_tests', currentGrade)}
+            className={`w-full py-3 text-white font-black text-xs rounded-xl shadow-md flex items-center justify-center space-x-2 active:scale-95 transition min-h-[46px] cursor-pointer ${
+              isJunior
+                ? 'bg-emerald-600 hover:bg-emerald-700'
+                : 'bg-[#E11D48] hover:bg-[#BE123C]'
+            }`}
+          >
+            <Play className="w-4 h-4 fill-white" />
+            <span>
+              {isJunior
+                ? `Play Grade ${currentGrade} Quiz (${studentSubjects.length} Subjects)`
+                : `Start Grade ${currentGrade} Mock Exam (30 Qs)`}
+            </span>
+          </button>
+        </div>
+
+        {/* 4. CARD 2: 🎙️ AI Reading & Speech Coach */}
+        <div className="p-4 rounded-2xl border-3 border-teal-300 bg-gradient-to-br from-teal-50 via-emerald-50/40 to-white shadow-xs space-y-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="space-y-1">
+              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-teal-100 text-teal-800">
+                Voice & Fluency Coach
+              </span>
+              <h2 className="font-black text-base text-slate-900 leading-tight">
+                🎙️ Practice Reading Aloud
+              </h2>
+              <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                Read Hindi & English stories aloud into the microphone. Measure reading speed, get pronunciation scores, and listen back to your voice!
+              </p>
+            </div>
+            <div className="w-11 h-11 rounded-2xl bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Mic className="w-6 h-6" />
+            </div>
+          </div>
+
+          <button
+            onClick={() => setActiveView('reading_coach')}
+            className="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white font-black text-xs rounded-xl shadow-md flex items-center justify-center space-x-2 active:scale-95 transition min-h-[46px] cursor-pointer"
+          >
+            <BookOpen className="w-4 h-4" />
+            <span>Start Reading Coach (English & Hindi)</span>
+          </button>
+        </div>
+
+        {/* 5. CARD 3: 🤖 24/7 Socratic AI Tutor & Doubt Solver */}
+        <div className="p-4 rounded-2xl border-3 border-indigo-200 bg-gradient-to-br from-indigo-50 via-purple-50/40 to-white shadow-xs space-y-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="space-y-1">
+              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-800">
+                24/7 AI Tutor
+              </span>
+              <h2 className="font-black text-base text-slate-900 leading-tight">
+                🤖 Ask AI Tutor Any Doubt
+              </h2>
+              <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                Stuck on homework or a tricky formula? Ask via voice or typing in Hindi, English, or 22+ regional languages.
+              </p>
+            </div>
+            <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Bot className="w-6 h-6" />
+            </div>
+          </div>
+
+          <button
+            onClick={() => openAITutorWithContext()}
+            className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl shadow-md flex items-center justify-center space-x-2 active:scale-95 transition min-h-[46px] cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4 text-yellow-300" />
+            <span>Ask a Question / Clear a Doubt</span>
+          </button>
+        </div>
+
+        {/* 6. CARD 4: 📚 Grade {currentGrade} Subjects Grid */}
+        <div className="bg-white p-4 rounded-2xl border-2 border-slate-200 shadow-xs space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <BookOpen className="w-4 h-4 text-amber-600" />
+              <h2 className="font-black text-sm text-slate-900">
+                Grade {currentGrade} Subjects ({studentSubjects.length})
+              </h2>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-900">
+              {isJunior ? 'Primary Core' : 'Board Curriculum'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            {studentSubjects.map((subj) => (
+              <button
+                key={subj.id}
+                onClick={() => {
+                  setSelectedSubjectId(subj.id);
+                  setActiveView('subject_detail');
+                }}
+                className="p-3 rounded-xl border-2 border-slate-100 hover:border-amber-300 bg-slate-50/70 text-left space-y-1.5 transition active:scale-[0.98] cursor-pointer"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-900">
+                    {subj.code}
+                  </span>
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                </div>
+                <div className="font-bold text-xs text-slate-900 line-clamp-1">
+                  {subj.name}
+                </div>
+                <div className="text-[10px] text-slate-500 font-medium">
+                  Tap to open lessons
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 7. CARD 5: 🔍 Grade-Wise Question Search */}
+        <div className="p-4 rounded-2xl border-3 border-blue-200 bg-gradient-to-br from-blue-50 via-sky-50/40 to-white shadow-xs space-y-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="space-y-1">
+              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-blue-100 text-blue-800">
+                Instant Question Bank
+              </span>
+              <h2 className="font-black text-base text-slate-900 leading-tight">
+                🔍 Search Grade {currentGrade} Questions
+              </h2>
+              <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                {isJunior
+                  ? 'Search numbers, shapes, animals, and solve questions step-by-step!'
+                  : 'Search past board exam questions, physics formulas, and chemistry reactions.'}
+              </p>
+            </div>
+            <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Search className="w-6 h-6" />
+            </div>
+          </div>
+
+          {/* Quick Topic Chips */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none text-[11px]">
+            <span className="text-slate-500 font-bold shrink-0">Topics:</span>
+            {(isJunior
+              ? ['Numbers', 'Shapes', 'Animals', 'Addition']
+              : ['Algebra', 'Photosynthesis', 'Gravitation', 'Reactions']
+            ).map((term) => (
+              <button
+                key={term}
+                onClick={() => openExamPrep('search_questions', currentGrade)}
+                className="px-2.5 py-1 rounded-lg bg-white border border-blue-200 text-blue-900 font-bold hover:bg-blue-100 transition shrink-0 cursor-pointer"
+              >
+                {term}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => openExamPrep('search_questions', currentGrade)}
+            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md flex items-center justify-center space-x-2 active:scale-95 transition min-h-[46px] cursor-pointer"
+          >
+            <Search className="w-4 h-4" />
+            <span>Search Question Bank (Grade {currentGrade})</span>
+          </button>
+        </div>
+
+        {/* 8. CARD 6: 🗂️ Explore Full Classes Catalog */}
+        <button
+          onClick={() => setActiveView('classes_catalog')}
+          className="w-full p-4 rounded-2xl border-2 border-amber-300 bg-gradient-to-r from-amber-50 to-yellow-50 shadow-xs flex items-center justify-between gap-3 text-left transition hover:bg-amber-100 active:scale-[0.98] cursor-pointer"
+        >
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-400 text-slate-900 flex items-center justify-center shrink-0 shadow-xs">
+              <Layers className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-black text-xs sm:text-sm text-slate-900">
+                Browse All Classes (Grades 1 – 11)
+              </h3>
+              <p className="text-[11px] text-slate-600 font-medium">
+                CBSE, ICSE & State Board complete curriculum & syllabus
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="w-4 h-4 text-amber-700 shrink-0" />
+        </button>
+
+        {/* 9. CARD 7: 👨‍👩‍👧 Parent, Teacher & Admin Access (Clean & Tucked Away) */}
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-2.5 text-center">
+          <p className="text-[11px] font-black text-slate-500 uppercase tracking-wider">
+            Parent, Teacher or School Admin?
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              onClick={() => {
+                setCurrentRole('parent');
+                setActiveView('parent_dashboard');
+              }}
+              className="py-2 px-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 rounded-xl border border-emerald-200 text-xs font-bold transition flex flex-col items-center gap-1 cursor-pointer"
+            >
+              <Users className="w-4 h-4 text-emerald-600" />
+              <span>Parent</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setCurrentRole('teacher');
+                setActiveView('teacher_dashboard');
+              }}
+              className="py-2 px-2 bg-blue-50 hover:bg-blue-100 text-blue-900 rounded-xl border border-blue-200 text-xs font-bold transition flex flex-col items-center gap-1 cursor-pointer"
+            >
+              <GraduationCap className="w-4 h-4 text-blue-600" />
+              <span>Teacher</span>
+            </button>
+
+            <button
+              onClick={() => openLoginModal('admin')}
+              className="py-2 px-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 rounded-xl border border-indigo-200 text-xs font-bold transition flex flex-col items-center gap-1 cursor-pointer"
+            >
+              <ShieldCheck className="w-4 h-4 text-indigo-600" />
+              <span>Admin</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Simple Footer */}
+        <div className="pt-2 text-center text-slate-500 text-[11px] font-medium space-y-1">
+          <p>© 2026 DESHNA AI Learning Hub • Grades 1 to 11</p>
+          <div className="flex items-center justify-center gap-3 text-amber-700 font-bold">
+            <button onClick={() => setActiveView('classes_catalog')}>Syllabus</button>
+            <span>•</span>
+            <button onClick={() => openLoginModal('parent')}>Parent</button>
+            <span>•</span>
+            <button onClick={() => openLoginModal('admin')}>Admin</button>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 🖥️ DESKTOP VIEW (Classic Multi-Column Layout) - Hidden on mobile (< lg)   */}
+      {/* ========================================================================= */}
+      <div className="hidden lg:block">
+        {/* Top Banner Hero: 2-Column Split (Part 1: Content & Props | Part 2: System Admin & User Login Portal) */}
+        <section id="home-hero-section" className="relative overflow-hidden pt-10 pb-16 lg:pt-14 lg:pb-24 bg-gradient-to-r from-[#D97706] via-[#B45309] to-[#78350F] text-white border-b-8 border-[#92400E]">
         <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#FDE68A_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -944,6 +1328,7 @@ export const LandingView: React.FC = () => {
           </div>
         </div>
       </footer>
+      </div>
 
       {/* Onboarding Modal */}
       <OnboardingModal isOpen={isOnboardingOpen} onClose={() => setIsOnboardingOpen(false)} />

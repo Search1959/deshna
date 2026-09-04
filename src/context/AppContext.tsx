@@ -85,6 +85,11 @@ interface AppContextType {
   activeView: ActiveView;
   setActiveView: (view: ActiveView) => void;
 
+  // Exam Prep & Question Search
+  examPrepInitialTab: 'mock_tests' | 'search_questions';
+  setExamPrepInitialTab: (tab: 'mock_tests' | 'search_questions') => void;
+  openExamPrep: (tab?: 'mock_tests' | 'search_questions', gradeId?: number) => void;
+
   // Selected Academic Hierarchy
   selectedBoardId: string;
   setSelectedBoardId: (boardId: string) => void;
@@ -137,6 +142,12 @@ interface AppContextType {
   dailyPlan: DailyPlan;
   setDailyPlanMinutes: (minutes: number) => Promise<void>;
   toggleDailyPlanItem: (itemId: string) => void;
+
+  // Student Help & User Guide Modal
+  isHelpModalOpen: boolean;
+  setIsHelpModalOpen: (open: boolean) => void;
+  openHelpModal: () => void;
+  closeHelpModal: () => void;
 
   // Curriculum Data (Relational & Dynamic)
   boards: Board[];
@@ -286,6 +297,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAllStudents((prev) =>
       prev.map((s) => (s.id === currentStudent?.id ? { ...s, boardId } : s))
     );
+  };
+
+  // Exam Prep & Question Search Tab State
+  const [examPrepInitialTab, setExamPrepInitialTab] = useState<'mock_tests' | 'search_questions'>('mock_tests');
+
+  const openExamPrep = (tab: 'mock_tests' | 'search_questions' = 'mock_tests', gradeId?: number) => {
+    if (gradeId && typeof gradeId === 'number') {
+      setSelectedGradeId(gradeId);
+    }
+    setExamPrepInitialTab(tab);
+    setActiveView('exam_prep');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Indian Languages Selection
@@ -872,7 +895,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [subjectMappings, setSubjectMappings] = useState<SubjectMapping[]>(() => {
     try {
-      const saved = localStorage.getItem('eduvate_mappings');
+      const saved = localStorage.getItem('eduvate_mappings_v2');
       return saved ? JSON.parse(saved) : DEFAULT_SUBJECT_MAPPINGS;
     } catch {
       return DEFAULT_SUBJECT_MAPPINGS;
@@ -881,7 +904,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [subjects, setSubjects] = useState<Subject[]>(() => {
     try {
-      const saved = localStorage.getItem('eduvate_subjects');
+      const saved = localStorage.getItem('eduvate_subjects_v2');
       return saved ? JSON.parse(saved) : INITIAL_SUBJECTS;
     } catch {
       return INITIAL_SUBJECTS;
@@ -890,7 +913,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [chapters, setChapters] = useState<Chapter[]>(() => {
     try {
-      const saved = localStorage.getItem('eduvate_chapters');
+      const saved = localStorage.getItem('eduvate_chapters_v2');
       return saved ? JSON.parse(saved) : INITIAL_CHAPTERS;
     } catch {
       return INITIAL_CHAPTERS;
@@ -914,9 +937,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.setItem('eduvate_grades', JSON.stringify(grades));
       localStorage.setItem('eduvate_categories', JSON.stringify(categories));
       localStorage.setItem('eduvate_streams', JSON.stringify(streams));
-      localStorage.setItem('eduvate_mappings', JSON.stringify(subjectMappings));
-      localStorage.setItem('eduvate_subjects', JSON.stringify(subjects));
-      localStorage.setItem('eduvate_chapters', JSON.stringify(chapters));
+      localStorage.setItem('eduvate_mappings_v2', JSON.stringify(subjectMappings));
+      localStorage.setItem('eduvate_subjects_v2', JSON.stringify(subjects));
+      localStorage.setItem('eduvate_chapters_v2', JSON.stringify(chapters));
     } catch (e) {
       console.warn('Storage sync error', e);
     }
@@ -928,7 +951,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const gId = gradeId !== undefined ? gradeId : selectedGradeId;
     const sId = streamId || selectedStreamId;
 
-    // First check relational mappings
+    // Filter directly by boardId, gradeId, and streamId
+    const directMatches = subjects.filter((s) => {
+      if (s.isActive === false) return false;
+      const boardMatch = !s.boardId || s.boardId === 'all' || s.boardId === bId;
+      const gradeMatch = s.gradeId === gId;
+      if (gId >= 11) {
+        const streamMatch = !s.streamId || s.streamId === 'general' || s.streamId === sId;
+        return boardMatch && gradeMatch && streamMatch;
+      }
+      return boardMatch && gradeMatch;
+    });
+
+    if (directMatches.length > 0) {
+      return directMatches;
+    }
+
+    // Check relational mappings
     const activeMappings = subjectMappings.filter((m) => {
       if (!m.isActive) return false;
       const boardMatch = m.boardId === 'all' || m.boardId === bId;
@@ -991,6 +1030,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Search Modal
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Student Help & User Guide Modal
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const openHelpModal = () => setIsHelpModalOpen(true);
+  const closeHelpModal = () => setIsHelpModalOpen(false);
 
   // Speech synthesis state
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -1390,6 +1434,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setCurrentRole,
         activeView,
         setActiveView,
+        examPrepInitialTab,
+        setExamPrepInitialTab,
+        openExamPrep,
         selectedBoardId,
         setSelectedBoardId,
         selectedGradeId,
@@ -1489,6 +1536,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         openAITutorWithContext,
         isSearchOpen,
         setIsSearchOpen,
+        isHelpModalOpen,
+        setIsHelpModalOpen,
+        openHelpModal,
+        closeHelpModal,
         selectedLanguage,
         setSelectedLanguage,
         availableLanguages: INDIAN_LANGUAGES,

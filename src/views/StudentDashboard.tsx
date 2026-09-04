@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { MobileStudentHub } from '../components/MobileStudentHub';
 import {
   Sparkles,
   Flame,
@@ -20,6 +21,8 @@ import {
   Play,
   RotateCcw,
   Volume2,
+  Search,
+  GraduationCap,
 } from 'lucide-react';
 
 export const StudentDashboard: React.FC = () => {
@@ -39,6 +42,7 @@ export const StudentDashboard: React.FC = () => {
     speakText,
     getFilteredSubjects,
     getChaptersForSubject,
+    openExamPrep,
     t,
     localizeSubject,
   } = useApp();
@@ -76,11 +80,18 @@ export const StudentDashboard: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-6 sm:space-y-8">
-      {/* Top Welcome Banner with Grade-Adaptive Accent */}
-      <div
-        className="rounded-2xl sm:rounded-3xl p-4 sm:p-8 text-white shadow-xl relative overflow-hidden bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1D4ED8] border-b-6 sm:border-b-8 border-[#1E40AF]"
-      >
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-8 space-y-4 sm:space-y-8">
+      {/* Mobile-Friendly Streamlined Card-Based View (Shown on Mobile screens < md) */}
+      <div className="block md:hidden">
+        <MobileStudentHub />
+      </div>
+
+      {/* Tablet & Desktop Experience (Shown on md+) */}
+      <div className="hidden md:block space-y-6 sm:space-y-8">
+        {/* Top Welcome Banner with Grade-Adaptive Accent */}
+        <div
+          className="rounded-2xl sm:rounded-3xl p-4 sm:p-8 text-white shadow-xl relative overflow-hidden bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1D4ED8] border-b-6 sm:border-b-8 border-[#1E40AF]"
+        >
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center space-x-3 sm:space-x-4">
             <img
@@ -121,6 +132,47 @@ export const StudentDashboard: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Desktop Quick Grade Mock Exams & Question Search Card */}
+      <div className="bg-white p-5 rounded-3xl border-3 border-rose-200 shadow-sm flex items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center space-x-2">
+            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-rose-100 text-rose-800">
+              Grade {currentStudent.gradeId} Hub
+            </span>
+            <span className="text-xs font-bold text-slate-500">
+              {currentStudent.boardId.toUpperCase()} Curriculum • {studentSubjects.length} Subjects Ready
+            </span>
+          </div>
+          <h2 className="text-lg font-black text-slate-900">
+            {isPrimary
+              ? `🌱 Grade ${currentStudent.gradeId} Quizzes & Practice Question Bank`
+              : `🎓 Grade ${currentStudent.gradeId} 30-Question Mock Exams & Question Bank`}
+          </h2>
+          <p className="text-xs text-slate-600 font-medium">
+            {isPrimary
+              ? 'Standardized quizzes across all 4 subjects with instant answer checking, confetti, and rewards.'
+              : 'Full-length 30-question subject mocks, countdown timer, shuffle retakes, and concept question bank.'}
+          </p>
+        </div>
+
+        <div className="flex items-center space-x-2 shrink-0">
+          <button
+            onClick={() => openExamPrep('mock_tests', currentStudent.gradeId)}
+            className="px-4 py-2.5 bg-[#E11D48] hover:bg-[#BE123C] text-white font-black text-xs rounded-xl shadow-xs flex items-center space-x-2 transition"
+          >
+            <Play className="w-3.5 h-3.5 fill-white" />
+            <span>{isPrimary ? 'Play Grade Quiz' : 'Start Mock Exam (30 Qs)'}</span>
+          </button>
+          <button
+            onClick={() => openExamPrep('search_questions', currentStudent.gradeId)}
+            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-xs flex items-center space-x-2 transition"
+          >
+            <Search className="w-3.5 h-3.5" />
+            <span>Search Question Bank</span>
+          </button>
         </div>
       </div>
 
@@ -398,6 +450,7 @@ export const StudentDashboard: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

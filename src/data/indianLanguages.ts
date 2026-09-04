@@ -254,6 +254,8 @@ export const UI_TRANSLATIONS: Record<string, Record<string, string>> = {
     exam_prep: 'Exam Prep',
     ask_ai_tutor: 'Ask AI Tutor',
     login_onboard: '+ Login / Onboard',
+    help_guide: 'Help & Guide',
+    study_hub: 'Study Modules',
     switch_language: 'Select Indian Language',
     languages_label: 'Languages',
     popular_languages: 'Popular Languages',
