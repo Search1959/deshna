@@ -84,6 +84,9 @@ export const ReadingCoachView: React.FC = () => {
   const [isTestMicOpen, setIsTestMicOpen] = useState(false);
   const [testMicVolume, setTestMicVolume] = useState(0);
   const [testMicPassed, setTestMicPassed] = useState(false);
+  const [isSimulatingSpeech, setIsSimulatingSpeech] = useState(false);
+  const [isManualInputOpen, setIsManualInputOpen] = useState(false);
+  const [manualInputText, setManualInputText] = useState('');
 
   // Comprehension Questions
   const [compAnswers, setCompAnswers] = useState<Record<number, number>>({});
@@ -92,6 +95,7 @@ export const ReadingCoachView: React.FC = () => {
   // Mutable refs to prevent unwanted re-renders & lifecycle closures
   const recognitionRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
+  const simulationIntervalRef = useRef<any>(null);
   const isListeningRef = useRef(false);
   const isFinishedRef = useRef(false);
   const elapsedSecondsRef = useRef(0);
@@ -154,6 +158,15 @@ export const ReadingCoachView: React.FC = () => {
     return () => {
       isListeningRef.current = false;
       isFinishedRef.current = true;
+      if (simulationIntervalRef.current) {
+        clearInterval(simulationIntervalRef.current);
+        simulationIntervalRef.current = null;
+      }
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        try {
+          window.speechSynthesis.cancel();
+        } catch {}
+      }
       if (recognitionRef.current) {
         try {
           recognitionRef.current.abort();
@@ -168,6 +181,7 @@ export const ReadingCoachView: React.FC = () => {
     setMicError(null);
     setIsFinished(false);
     isFinishedRef.current = false;
+    setIsSimulatingSpeech(false);
     setEvaluationResult(null);
     setSpokenTranscript('');
     spokenTranscriptRef.current = '';
@@ -182,17 +196,16 @@ export const ReadingCoachView: React.FC = () => {
       setRecordedAudioUrl(null);
     }
 
-    // Step 1: Request microphone permission & Web Audio API analyser
-    let stream: MediaStream | null = null;
-    try {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          },
-        });
+    // Step 1: Request microphone permission & Web Audio API analyser safely in background
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      })
+      .then(async (stream) => {
         mediaStreamRef.current = stream;
 
         // Setup Web Audio API for live voice level detection & volume wave
@@ -257,19 +270,18 @@ export const ReadingCoachView: React.FC = () => {
             };
             recorder.start(250);
           } catch (recErr) {
-            console.log('MediaRecorder optional setup notice:', recErr);
+            console.log('MediaRecorder optional notice:', recErr);
           }
         }
-      }
-    } catch (permErr: any) {
-      console.warn('Microphone permission check:', permErr);
-      if (permErr.name === 'NotAllowedError' || permErr.name === 'PermissionDeniedError') {
-        setMicError('Microphone permission blocked. Please click the lock or camera icon in your browser URL bar to allow microphone access, then try again.');
-      } else if (permErr.name === 'NotFoundError' || permErr.name === 'DevicesNotFoundError') {
-        setMicError('No microphone detected on your device. Please plug in a headset or microphone.');
-      } else {
-        setMicError('Could not initialize microphone: ' + (permErr.message || 'Unknown error'));
-      }
+      })
+      .catch((permErr) => {
+        console.warn('Microphone permission notice:', permErr);
+        if (permErr.name === 'NotAllowedError' || permErr.name === 'PermissionDeniedError') {
+          setMicError('Microphone permission is blocked by your browser settings. You can still speak aloud or click "Try Speech Demo" below to test reading fluency!');
+        } else if (permErr.name === 'NotFoundError' || permErr.name === 'DevicesNotFoundError') {
+          setMicError('No microphone hardware detected. You can use "Try Speech Demo" to test speech recognition.');
+        }
+      });
     }
 
     // Step 2: Initialize Web Speech API Recognition
@@ -287,6 +299,7 @@ export const ReadingCoachView: React.FC = () => {
         const recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = true;
+        recognition.maxAlternatives = 3;
         recognition.lang = getRecognitionLang(activeStory?.languageCode);
 
         recognition.onresult = (event: any) => {
@@ -321,33 +334,30 @@ export const ReadingCoachView: React.FC = () => {
         };
 
         recognition.onerror = (e: any) => {
-          // 'no-speech' is a normal silence pause during speech. NEVER terminate on it!
-          if (e.error === 'no-speech') {
-            return;
-          }
-          if (e.error === 'aborted') {
+          if (e.error === 'no-speech' || e.error === 'aborted') {
             return;
           }
           if (e.error === 'not-allowed') {
-            setMicError('Microphone access is not allowed by your browser settings. Please permit microphone usage in the address bar.');
-            handleStopReading();
+            setMicError('Microphone access is not permitted in this browser window. You can click "Try Speech Demo" below to experience the speech coach!');
             return;
           }
-          if (e.error === 'network') {
-            console.warn('Speech recognition network warning - audio voice activity mode active.');
+          if (e.error === 'network' || e.error === 'service-not-allowed') {
+            console.warn('Speech recognition cloud notice:', e.error);
+            setMicError('Browser cloud speech service is paused in this sandbox. Voice Activity detection is active, or click "Try Speech Demo" to test recognition.');
             return;
           }
           console.warn('Speech recognition status:', e.error);
         };
 
         recognition.onend = () => {
-          // If session is still active and user did not stop, automatically resume!
           if (isListeningRef.current && !isFinishedRef.current) {
-            try {
-              recognition.start();
-            } catch (err) {
-              // already active or restart delay
-            }
+            setTimeout(() => {
+              if (isListeningRef.current && !isFinishedRef.current && recognitionRef.current) {
+                try {
+                  recognitionRef.current.start();
+                } catch {}
+              }
+            }, 150);
           }
         };
 
@@ -374,9 +384,100 @@ export const ReadingCoachView: React.FC = () => {
     }, 1000);
   };
 
+  const handleSimulateSpeech = () => {
+    if (isListening) {
+      handleStopReading();
+      return;
+    }
+
+    setMicError(null);
+    setIsFinished(false);
+    isFinishedRef.current = false;
+    setEvaluationResult(null);
+    setSpokenTranscript('');
+    spokenTranscriptRef.current = '';
+    finalTranscriptRef.current = '';
+    setCurrentWordIndex(0);
+    setElapsedSeconds(0);
+    elapsedSecondsRef.current = 0;
+    voiceActivitySecondsRef.current = 0;
+    setIsSimulatingSpeech(true);
+
+    isListeningRef.current = true;
+    setIsListening(true);
+
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setElapsedSeconds((prev) => {
+        const next = prev + 1;
+        elapsedSecondsRef.current = next;
+        return next;
+      });
+    }, 1000);
+
+    const currentStory = activeStoryRef.current;
+    if (!currentStory) return;
+
+    const allWords = currentStory.passage.trim().split(/\s+/).filter(Boolean);
+    let wordIdx = 0;
+    let accumulated = '';
+
+    // If Web Speech Synthesis is available, speak out the story
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(currentStory.passage);
+        utterance.rate = 0.95;
+        const voiceLang = getRecognitionLang(currentStory.languageCode);
+        utterance.lang = voiceLang;
+        window.speechSynthesis.speak(utterance);
+      } catch {}
+    }
+
+    if (simulationIntervalRef.current) clearInterval(simulationIntervalRef.current);
+    simulationIntervalRef.current = setInterval(() => {
+      if (!isListeningRef.current || wordIdx >= allWords.length) {
+        if (simulationIntervalRef.current) {
+          clearInterval(simulationIntervalRef.current);
+          simulationIntervalRef.current = null;
+        }
+        setIsSimulatingSpeech(false);
+        if (wordIdx >= allWords.length) {
+          setTimeout(() => {
+            handleStopReading();
+          }, 600);
+        }
+        return;
+      }
+
+      const nextWord = allWords[wordIdx];
+      accumulated = accumulated ? `${accumulated} ${nextWord}` : nextWord;
+      wordIdx++;
+
+      setSpokenTranscript(accumulated);
+      spokenTranscriptRef.current = accumulated;
+      setCurrentWordIndex(wordIdx);
+      voiceActivitySecondsRef.current += 0.35;
+
+      // Realistic voice waveform fluctuation
+      const randomVol = Math.floor(45 + Math.random() * 40);
+      setMicVolume(randomVol);
+    }, 320);
+  };
+
   const handleStopReading = () => {
     isListeningRef.current = false;
     setIsListening(false);
+    setIsSimulatingSpeech(false);
+    if (simulationIntervalRef.current) {
+      clearInterval(simulationIntervalRef.current);
+      simulationIntervalRef.current = null;
+    }
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch {}
+    }
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -494,6 +595,65 @@ export const ReadingCoachView: React.FC = () => {
   const handleHearStory = () => {
     if (activeStory) {
       speakText(activeStory.passage, activeStory.languageCode || 'en');
+    }
+  };
+
+  const handleApplyManualTranscript = () => {
+    if (!manualInputText.trim()) return;
+    const text = manualInputText.trim();
+    setSpokenTranscript(text);
+    spokenTranscriptRef.current = text;
+    finalTranscriptRef.current = text;
+    setIsManualInputOpen(false);
+
+    // End listening & evaluate immediately
+    isListeningRef.current = false;
+    setIsListening(false);
+    isFinishedRef.current = true;
+    setIsFinished(true);
+
+    const currentStory = activeStoryRef.current;
+    if (!currentStory) return;
+
+    const duration = Math.max(elapsedSecondsRef.current, 15);
+    const evaluation = evaluateReadingAttempt(
+      currentStory.passage,
+      text,
+      duration,
+      currentStory.language || 'English',
+      {
+        voiceActivitySeconds: duration,
+        hasAudioLevel: true,
+        speechServiceAvailable: true,
+      }
+    );
+
+    setEvaluationResult(evaluation);
+    recordReadingAttempt({
+      studentId: currentStudent.id,
+      storyId: currentStory.id,
+      storyTitle: currentStory.title,
+      language: currentStory.language || 'English',
+      languageCode: currentStory.languageCode || 'en',
+      wpm: evaluation.actualWpm,
+      accuracy: evaluation.accuracyPercent,
+      durationSeconds: duration,
+      wordsSpoken: evaluation.totalSpokenWords,
+      wordsMatched: evaluation.matchedWordsCount,
+      totalWords: evaluation.totalPassageWords,
+      status: evaluation.status,
+      transcriptSnippet: text.slice(0, 100),
+      struggledWords: evaluation.struggledWords || [],
+    });
+
+    if (evaluation.xpAwarded > 0) {
+      awardPoints(evaluation.xpAwarded, `Reading Practice (${currentStory.language}): ${currentStory.title}`);
+    }
+
+    if (evaluation.accuracyPercent >= 75) {
+      try {
+        confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+      } catch {}
     }
   };
 
@@ -854,14 +1014,26 @@ export const ReadingCoachView: React.FC = () => {
           <div className="p-5 rounded-2xl bg-[#D1FAE5] border-2 border-[#6EE7B7] flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
               {!isListening ? (
-                <button
-                  id="start-reading-aloud-btn"
-                  onClick={handleStartReading}
-                  className="px-6 py-3 bg-[#10B981] hover:bg-[#059669] text-white font-black text-xs sm:text-sm rounded-2xl shadow-md transition flex items-center space-x-2 transform active:scale-95 cursor-pointer"
-                >
-                  <Mic className="w-5 h-5" />
-                  <span>Start Reading Aloud ({activeStory?.language || 'English'})</span>
-                </button>
+                <>
+                  <button
+                    id="start-reading-aloud-btn"
+                    onClick={handleStartReading}
+                    className="px-5 py-3 bg-[#10B981] hover:bg-[#059669] text-white font-black text-xs sm:text-sm rounded-2xl shadow-md transition flex items-center space-x-2 transform active:scale-95 cursor-pointer"
+                  >
+                    <Mic className="w-5 h-5" />
+                    <span>Start Reading Aloud ({activeStory?.language || 'English'})</span>
+                  </button>
+
+                  <button
+                    id="simulate-speech-demo-btn"
+                    onClick={handleSimulateSpeech}
+                    className="px-4 py-3 bg-white hover:bg-emerald-50 text-emerald-800 font-black text-xs sm:text-sm rounded-2xl border-2 border-emerald-400 shadow-sm transition flex items-center space-x-1.5 cursor-pointer"
+                    title="Simulate speech to test word recognition and scoring without microphone"
+                  >
+                    <Play className="w-4 h-4 text-emerald-600 fill-emerald-600" />
+                    <span>Try Speech Demo</span>
+                  </button>
+                </>
               ) : (
                 <button
                   id="stop-reading-aloud-btn"
@@ -869,7 +1041,7 @@ export const ReadingCoachView: React.FC = () => {
                   className="px-6 py-3 bg-[#EF4444] hover:bg-[#DC2626] text-white font-black text-xs sm:text-sm rounded-2xl shadow-md transition flex items-center space-x-2 animate-pulse cursor-pointer"
                 >
                   <MicOff className="w-5 h-5" />
-                  <span>Finish Reading</span>
+                  <span>Finish Reading {isSimulatingSpeech ? '(Demo)' : ''}</span>
                 </button>
               )}
 
@@ -892,7 +1064,7 @@ export const ReadingCoachView: React.FC = () => {
               <div className="flex items-center gap-3 bg-white px-3.5 py-2 rounded-xl border-2 border-[#6EE7B7] shadow-xs">
                 <div className="flex items-center space-x-1.5 text-xs text-[#065F46] font-black">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] animate-ping" />
-                  <span>Listening...</span>
+                  <span>{isSimulatingSpeech ? 'Demo Voice Active...' : 'Listening...'}</span>
                 </div>
 
                 {/* Animated Sound Wave Equalizer Meter */}
@@ -919,14 +1091,24 @@ export const ReadingCoachView: React.FC = () => {
           </div>
 
           {/* Live Detected Speech Log */}
-          {(spokenTranscript || isListening) && (
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
+          {(spokenTranscript || isListening || isManualInputOpen) && (
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                   <Mic className="w-3.5 h-3.5 text-emerald-600" />
-                  Live Microphone Audio Transcript
+                  Live Spoken Audio Transcript
                 </span>
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setManualInputText(spokenTranscript || activeStory.passage);
+                      setIsManualInputOpen(!isManualInputOpen);
+                    }}
+                    className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 transition flex items-center gap-1"
+                  >
+                    <FileText className="w-3 h-3" />
+                    <span>{isManualInputOpen ? 'Close Input' : 'Type / Edit Transcript'}</span>
+                  </button>
                   {micVolume > 8 && (
                     <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full animate-pulse">
                       🎙️ Sound Detected
@@ -937,9 +1119,39 @@ export const ReadingCoachView: React.FC = () => {
                   </span>
                 </div>
               </div>
-              <p className="text-xs font-medium text-slate-700 italic bg-white p-3 rounded-xl border border-slate-100 min-h-[38px]">
-                {spokenTranscript || (isListening ? 'Speak the passage aloud into the microphone now...' : 'No transcript recorded yet.')}
-              </p>
+
+              {isManualInputOpen ? (
+                <div className="p-3 bg-white rounded-xl border border-emerald-300 space-y-2">
+                  <p className="text-xs text-slate-600">
+                    If your microphone is muted or browser blocks voice recognition, you can type or paste what you read aloud below:
+                  </p>
+                  <textarea
+                    value={manualInputText}
+                    onChange={(e) => setManualInputText(e.target.value)}
+                    rows={3}
+                    className="w-full text-xs p-2.5 border rounded-lg border-slate-200 focus:outline-emerald-500 font-medium"
+                    placeholder="Type or paste the spoken words here..."
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => setIsManualInputOpen(false)}
+                      className="px-3 py-1 text-xs text-slate-500 font-bold hover:bg-slate-100 rounded-lg"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleApplyManualTranscript}
+                      className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-lg shadow-xs"
+                    >
+                      Evaluate Transcript
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs font-medium text-slate-700 italic bg-white p-3 rounded-xl border border-slate-100 min-h-[38px]">
+                  {spokenTranscript || (isListening ? 'Speak the passage aloud into the microphone now...' : 'No transcript recorded yet.')}
+                </p>
+              )}
             </div>
           )}
 

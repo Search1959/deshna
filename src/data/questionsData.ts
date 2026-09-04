@@ -603,6 +603,14 @@ export const BESPOKE_PRESEEDED_QUESTIONS: Question[] = [
 ];
 
 /**
+ * Normalize board-prefixed subject IDs (e.g., 'cbse-g3-math' -> 'g3-math')
+ */
+export function normalizeSubjectKey(subjectId: string): string {
+  if (!subjectId) return '';
+  return subjectId.replace(/^(cbse|icse|wbbse|state|cam|isc|wb|sb|intl|ib)-/i, '').toLowerCase();
+}
+
+/**
  * Build the full question repository combining bespoke questions with
  * complete generated question coverage for every chapter in every subject.
  * Guarantees minimum 32-40 questions per subject across all 51 subjects!
@@ -616,20 +624,24 @@ function buildAllQuestions(): Question[] {
 
   const result: Question[] = [...balancedBespoke];
   const subjectMap = new Map(ALL_SUBJECTS.map((s) => [s.id, s]));
+  const normSubjectMap = new Map(ALL_SUBJECTS.map((s) => [normalizeSubjectKey(s.id), s]));
 
   for (const chapter of ALL_CHAPTERS) {
-    const subject = subjectMap.get(chapter.subjectId) || {
-      id: chapter.subjectId,
-      code: chapter.subjectId,
-      name: chapter.title,
-      iconName: 'BookOpen',
-      gradeId: chapter.gradeId,
-      boardId: chapter.boardId,
-      color: '#3B82F6',
-      description: chapter.description,
-      chaptersCount: 4,
-      totalQuestionsCount: 35,
-    };
+    const normChKey = normalizeSubjectKey(chapter.subjectId);
+    const subject =
+      subjectMap.get(chapter.subjectId) ||
+      normSubjectMap.get(normChKey) || {
+        id: chapter.subjectId,
+        code: chapter.subjectId,
+        name: chapter.title,
+        iconName: 'BookOpen',
+        gradeId: chapter.gradeId,
+        boardId: chapter.boardId,
+        color: '#3B82F6',
+        description: chapter.description,
+        chaptersCount: 4,
+        totalQuestionsCount: 35,
+      };
 
     const generated = generateCurriculumQuestionsForChapter(chapter, subject, ALL_TOPICS);
     for (const genQ of generated) {
@@ -703,77 +715,495 @@ export function getMockExamQuestionsForSubject(
   customSubject?: Subject
 ): Question[] {
   const poolFromSource = customQuestions || ALL_PRESEEDED_QUESTIONS;
-  let subjectQuestions = poolFromSource.filter(
-    (q) => q.subjectId === subjectId || (q.gradeId === gradeId && q.subjectId.includes(subjectId.replace(/^g\d+-/, '')))
-  );
+  const normTarget = normalizeSubjectKey(subjectId);
+  const targetCode = normTarget.replace(/^g\d+-/, ''); // e.g. 'math', 'sci', 'evs'
 
-  const subjectChapters =
-    customChapters?.filter((c) => c.subjectId === subjectId) ||
-    ALL_CHAPTERS.filter((c) => c.subjectId === subjectId);
+  // Match subject questions from pool
+  const subjectQuestions: Question[] = [];
+  const seenTexts = new Set<string>();
 
-  // If pool has fewer than targetCount, generate from chapters
-  if (subjectQuestions.length < targetCount) {
-    subjectChapters.forEach((chap) => {
-      const extra = getIntelligentQuestionsForChapter(
-        chap.id,
-        subjectId,
-        gradeId,
-        chap.title,
-        customSubject?.name
-      );
-      extra.forEach((eq) => {
-        if (!subjectQuestions.some((sq) => sq.id === eq.id || sq.text === eq.text)) {
-          subjectQuestions.push(eq);
-        }
-      });
-    });
-  }
+  const isMatchingSubject = (qSubjectId: string, qGradeId?: number) => {
+    if (qSubjectId === subjectId) return true;
+    const normQ = normalizeSubjectKey(qSubjectId);
+    if (normQ === normTarget) return true;
+    if (qGradeId === gradeId) {
+      const qCode = normQ.replace(/^g\d+-/, '');
+      if (qCode === targetCode) return true;
+      if (
+        gradeId <= 5 &&
+        ((targetCode === 'evs' && qCode === 'sci') || (targetCode === 'sci' && qCode === 'evs'))
+      ) {
+        return true;
+      }
+    }
+    return false;
+  };
 
-  // If still under targetCount, generate supplemental comprehensive questions to reach 30
-  if (subjectQuestions.length < targetCount) {
-    const needed = targetCount - subjectQuestions.length;
-    const sName = customSubject?.name || subjectId.replace(/^g\d+-/, '').toUpperCase();
-
-    for (let i = 0; i < needed; i++) {
-      const chap = subjectChapters[i % Math.max(1, subjectChapters.length)] || {
-        id: `mock-ch-${i + 1}`,
-        title: `${sName} Concept Review ${i + 1}`,
-        number: (i % 4) + 1,
-      };
-
-      const qNum = subjectQuestions.length + 1;
-      const newQ: Question = {
-        id: `q-mock-${subjectId}-${qNum}`,
-        topicId: `top-mock-${subjectId}-${(i % 4) + 1}`,
-        chapterId: chap.id,
-        subjectId,
-        gradeId,
-        boardId: 'cbse',
-        questionType: 'mcq',
-        difficulty: i % 3 === 0 ? 'easy' : i % 3 === 1 ? 'medium' : 'hard',
-        text: `[Mock Exam Q${qNum}] For Grade ${gradeId} ${sName} (${chap.title}): Which statement accurately applies the fundamental core concepts taught in this curriculum?`,
-        options: [
-          `Apply systematic step-by-step reasoning, verify against standard definitions, and follow proper units and rules.`,
-          `Skip foundational conceptual steps and rely on unverified estimations.`,
-          `Disregard standard formulas and theoretical rules outlined in the syllabus.`,
-          `Assume inverse proportions without calculating or checking given data.`,
-        ],
-        correctAnswer: 0,
-        explanation: `In Grade ${gradeId} ${sName} (${chap.title}), mastering core concepts requires careful step-by-step application of definitions, rules, and structured verification.`,
-        hints: [`Recall the fundamental principles covered in Chapter: ${chap.title}.`],
-        stepByStepSolution: [
-          `Step 1: Identify given parameters in ${chap.title}.`,
-          `Step 2: Apply the standard Grade ${gradeId} ${sName} conceptual framework.`,
-          `Step 3: Arrive at the verified solution.`,
-        ],
-        status: 'published',
-      };
-
-      subjectQuestions.push(balanceQuestionOptions(newQ, `mock-seed-${subjectId}-${qNum}`));
+  for (const q of poolFromSource) {
+    if (isMatchingSubject(q.subjectId, q.gradeId)) {
+      const cleanText = q.text.trim();
+      if (!seenTexts.has(cleanText)) {
+        seenTexts.add(cleanText);
+        subjectQuestions.push(q);
+      }
     }
   }
 
-  // Balance all options across A, B, C, D
+  // Identify all curriculum chapters for this subject
+  const allChaptersList = customChapters || ALL_CHAPTERS;
+  const subjectChapters = allChaptersList.filter((c) =>
+    isMatchingSubject(c.subjectId, c.gradeId)
+  );
+
+  // If pool has fewer than targetCount, generate dynamically from subject chapters
+  if (subjectQuestions.length < targetCount && subjectChapters.length > 0) {
+    const subjectObj: Subject =
+      customSubject ||
+      ALL_SUBJECTS.find((s) => s.id === subjectId || normalizeSubjectKey(s.id) === normTarget) || {
+        id: subjectId,
+        code: subjectId,
+        name: customSubject?.name || normTarget.toUpperCase(),
+        iconName: 'BookOpen',
+        gradeId,
+        boardId: 'cbse',
+        color: '#3B82F6',
+        description: 'Mock Exam Subject',
+        chaptersCount: subjectChapters.length,
+        totalQuestionsCount: 40,
+      };
+
+    for (const chap of subjectChapters) {
+      if (subjectQuestions.length >= targetCount) break;
+      const extraQuestions = generateCurriculumQuestionsForChapter(chap, subjectObj, ALL_TOPICS);
+      for (const eq of extraQuestions) {
+        const cleanText = eq.text.trim();
+        if (!seenTexts.has(cleanText)) {
+          seenTexts.add(cleanText);
+          subjectQuestions.push(eq);
+          if (subjectQuestions.length >= targetCount) break;
+        }
+      }
+    }
+  }
+
+  // If still under targetCount (e.g. specialized or smaller subjects), generate authentic supplemental questions
+  if (subjectQuestions.length < targetCount) {
+    const sName = customSubject?.name || normTarget.toUpperCase();
+    let step = 0;
+    const maxSafetyIterations = 150;
+
+    while (subjectQuestions.length < targetCount && step < maxSafetyIterations) {
+      step++;
+      const chap =
+        subjectChapters[(step - 1) % Math.max(1, subjectChapters.length)] || {
+          id: `mock-ch-${step}`,
+          title: `${sName} Topic ${step}`,
+          number: ((step - 1) % 4) + 1,
+        };
+
+      const qNum = subjectQuestions.length + 1;
+      let newQ: Question;
+
+      if (targetCode.includes('math')) {
+        const pattern = step % 4;
+        if (pattern === 0) {
+          const valA = step * 14 + 23;
+          const valB = step * 8 + 17;
+          const ans = valA + valB;
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'numerical',
+            difficulty: step % 2 === 0 ? 'easy' : 'medium',
+            text: `[Problem #${qNum}] In ${chap.title}: What is the exact sum of ${valA} and ${valB}?`,
+            options: [`${ans}`, `${ans + 10}`, `${ans - 5}`, `${ans + 100}`],
+            correctAnswer: 0,
+            explanation: `${valA} + ${valB} = ${ans}. Aligning by place value and adding ones then tens gives ${ans}.`,
+            hints: ['Add column by column starting from the ones place.'],
+            stepByStepSolution: [`Step 1: ${valA} + ${valB}`, `Step 2: Sum = ${ans}`],
+            status: 'published',
+          };
+        } else if (pattern === 1) {
+          const groups = (step % 6) + 3;
+          const items = (step % 5) + 4;
+          const total = groups * items;
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'numerical',
+            difficulty: 'medium',
+            text: `[Application #${qNum}] In ${chap.title}: If a teacher distributes ${items} notebooks to each of ${groups} students, how many total notebooks are distributed?`,
+            options: [`${total} notebooks`, `${total + 4} notebooks`, `${total - 2} notebooks`, `${groups + items} notebooks`],
+            correctAnswer: 0,
+            explanation: `Total notebooks = ${groups} groups × ${items} notebooks per group = ${total} notebooks.`,
+            hints: ['Multiply the number of groups by the quantity in each group.'],
+            stepByStepSolution: [`Step 1: ${groups} × ${items} = ${total}`],
+            status: 'published',
+          };
+        } else if (pattern === 2) {
+          const side = (step % 8) + 5;
+          const perimeter = 4 * side;
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'numerical',
+            difficulty: 'medium',
+            text: `[Geometry #${qNum}] In ${chap.title}: What is the perimeter of a square whose side length is ${side} cm?`,
+            options: [`${perimeter} cm`, `${perimeter + 4} cm`, `${side * side} cm`, `${perimeter - 2} cm`],
+            correctAnswer: 0,
+            explanation: `The perimeter of a square is 4 × side length = 4 × ${side} = ${perimeter} cm.`,
+            hints: ['Perimeter of square = 4 × side.'],
+            stepByStepSolution: [`Step 1: 4 × ${side} cm = ${perimeter} cm`],
+            status: 'published',
+          };
+        } else {
+          const num = (step % 5) + 2;
+          const den = num + 3;
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'easy',
+            text: `[Fraction Analysis #${qNum}] In ${chap.title}: In the fraction ${num}/${den}, what does the number ${den} represent?`,
+            options: [
+              `The total number of equal parts into which the whole is divided`,
+              `The number of parts currently taken or shaded`,
+              `The remainder after dividing the numerator`,
+              `The total count of whole shapes`,
+            ],
+            correctAnswer: 0,
+            explanation: `In any fraction a/b, the denominator (b) represents the total number of equal parts in the whole.`,
+            hints: ['Denominator is the bottom number indicating total equal divisions.'],
+            stepByStepSolution: [`Denominator ${den} = Total equal parts.`],
+            status: 'published',
+          };
+        }
+      } else if (
+        targetCode.includes('sci') ||
+        targetCode.includes('evs') ||
+        targetCode.includes('phy') ||
+        targetCode.includes('chem') ||
+        targetCode.includes('bio')
+      ) {
+        const pattern = step % 4;
+        if (pattern === 0) {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'easy',
+            text: `[Scientific Inquiry #${qNum}] In "${chap.title}": Why is controlling variables essential during an experiment?`,
+            options: [
+              `To ensure that any observed change is caused exclusively by the single tested variable`,
+              `To make the experiment complete without recording measurements`,
+              `To avoid using calibrated scientific tools`,
+              `To change multiple factors at the same time randomly`,
+            ],
+            correctAnswer: 0,
+            explanation: `Controlling variables isolates the cause-and-effect relationship, ensuring empirical validity.`,
+            hints: ['A fair test changes only one factor at a time.'],
+            stepByStepSolution: ['Step 1: Isolate independent variable.', 'Step 2: Keep control variables constant.'],
+            status: 'published',
+          };
+        } else if (pattern === 1) {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'medium',
+            text: `[Physical & Biological Mechanisms #${qNum}] In "${chap.title}": How is energy converted or utilized in this system?`,
+            options: [
+              `Energy transforms between kinetic, potential, thermal, or chemical states while total energy is conserved`,
+              `Energy is permanently lost forever without transforming`,
+              `Energy is spontaneously generated from zero input`,
+              `Energy can only exist in solid form`,
+            ],
+            correctAnswer: 0,
+            explanation: `The Universal Law of Conservation of Energy dictates that energy transforms without being created or destroyed.`,
+            hints: ['First Law of Thermodynamics.'],
+            stepByStepSolution: ['Energy transforms across states while total sum remains constant.'],
+            status: 'published',
+          };
+        } else if (pattern === 2) {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'medium',
+            text: `[Ecological Balance #${qNum}] In "${chap.title}": What happens when natural cycles or feedback loops are disturbed?`,
+            options: [
+              `The equilibrium of the ecosystem shifts, requiring conservation and sustainable management`,
+              `The ecosystem instantly doubles in biodiversity`,
+              `Physical laws cease to apply completely`,
+              `All living organisms become completely immune to environmental factors`,
+            ],
+            correctAnswer: 0,
+            explanation: `Ecological stability depends on interconnected balance; disruptions trigger cascading impacts on species and habitats.`,
+            hints: ['Think of food chains and resource equilibrium.'],
+            stepByStepSolution: ['Ecosystems rely on balance between biotic and abiotic factors.'],
+            status: 'published',
+          };
+        } else {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'hard',
+            text: `[Empirical Evidence #${qNum}] In "${chap.title}": Which observation provides verifiable proof for theoretical models in this topic?`,
+            options: [
+              `Quantitative measurements collected with calibrated instruments and repeated trials`,
+              `Unverified hearsay without experimental logs`,
+              `Assumptions made without recording units of measurement`,
+              `Personal subjective preference without data`,
+            ],
+            correctAnswer: 0,
+            explanation: `Scientific models require repeatable, quantitative experimental data to be verified.`,
+            hints: ['Empirical proof requires measurement and repeatability.'],
+            stepByStepSolution: ['Measurement with calibrated instruments ensures accuracy.'],
+            status: 'published',
+          };
+        }
+      } else if (
+        targetCode.includes('eng') ||
+        targetCode.includes('lang') ||
+        targetCode.includes('lit') ||
+        targetCode.includes('hindi') ||
+        targetCode.includes('bengali')
+      ) {
+        // English and Languages
+        const pattern = step % 4;
+        if (pattern === 0) {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'easy',
+            text: `[Grammar & Syntax #${qNum}] In "${chap.title}": Which rule is essential for writing grammatically correct sentences?`,
+            options: [
+              `The finite verb must always agree in number and person with its grammatical subject`,
+              `Adjectives must always be placed after the period at the end of a sentence`,
+              `Punctuation marks are optional and should be avoided in formal writing`,
+              `Every noun in a sentence must be capitalized regardless of position`,
+            ],
+            correctAnswer: 0,
+            explanation: `Subject-verb agreement is the foundational rule of syntax: singular subjects take singular verbs, and plural subjects take plural verbs.`,
+            hints: ['Think of subject-verb agreement.'],
+            stepByStepSolution: ['Ensure the verb matches the subject in person and number.'],
+            status: 'published',
+          };
+        } else if (pattern === 1) {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'medium',
+            text: `[Vocabulary & Context #${qNum}] In "${chap.title}": When encountering an unfamiliar word in a passage, what is the best strategy?`,
+            options: [
+              `Analyze the surrounding context clues, root words, and prefixes/suffixes to deduce meaning`,
+              `Skip the entire paragraph and guess the story outcome`,
+              `Assume the word has the exact opposite meaning of what the sentence describes`,
+              `Ignore the word completely and continue reading without understanding`,
+            ],
+            correctAnswer: 0,
+            explanation: `Context clues and morphological analysis (roots and affixes) allow active readers to determine vocabulary meanings efficiently.`,
+            hints: ['Look at clues in neighboring sentences.'],
+            stepByStepSolution: ['Use context clues and word roots to infer meaning.'],
+            status: 'published',
+          };
+        } else if (pattern === 2) {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'medium',
+            text: `[Reading Comprehension #${qNum}] In "${chap.title}": What is the primary purpose of identifying the author's central theme?`,
+            options: [
+              `To understand the core message or moral lesson that unifies all narrative events and arguments`,
+              `To count how many paragraphs contain dialogue marks`,
+              `To memorize every single character's minor spoken line`,
+              `To find the longest word printed on the page`,
+            ],
+            correctAnswer: 0,
+            explanation: `The central theme reveals the overarching lesson or argument the writer intends to communicate to the reader.`,
+            hints: ['Theme is the big idea or underlying message of a text.'],
+            stepByStepSolution: ['Determine the main message the text conveys.'],
+            status: 'published',
+          };
+        } else {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'hard',
+            text: `[Writing Conventions #${qNum}] In "${chap.title}": When drafting a formal composition or letter, which tone and structure is standard?`,
+            options: [
+              `Clear, courteous, well-structured paragraphs with precise vocabulary and proper salutation/sign-off`,
+              `Informal texting acronyms, unpunctuated stream of consciousness, and emotional slang`,
+              `Writing one continuous unpunctuated run-on sentence for the entire text`,
+              `Using vague, ambiguous statements so the reader has to guess your request`,
+            ],
+            correctAnswer: 0,
+            explanation: `Formal writing requires clarity, courteous tone, organized paragraphs, and conventional layout.`,
+            hints: ['Formal letters maintain polite language and clear organization.'],
+            stepByStepSolution: ['Plan greeting, clear body paragraphs with purpose, and formal closure.'],
+            status: 'published',
+          };
+        }
+      } else {
+        // Social Science, Commerce, General
+        const pattern = step % 4;
+        if (pattern === 0) {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'easy',
+            text: `[Socio-Historical Context #${qNum}] In "${chap.title}": What is the primary historical significance or institutional role examined?`,
+            options: [
+              `It established foundational rules, rights, and organizational systems that shaped societal progress`,
+              `It had zero influence on governance or living conditions`,
+              `It was enacted without any records or constitutional documentation`,
+              `It was completely reversed within 24 hours with no legacy`,
+            ],
+            correctAnswer: 0,
+            explanation: `Historical milestones in ${chap.title} laid institutional frameworks for modern rights and civic structures.`,
+            hints: ['Consider the long-term impact on democratic society.'],
+            stepByStepSolution: ['Analyze the historical development and its lasting institutional legacy.'],
+            status: 'published',
+          };
+        } else if (pattern === 1) {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'medium',
+            text: `[Civic & Democratic Rights #${qNum}] In "${chap.title}": Why is the principle of separation of powers vital for stable governance?`,
+            options: [
+              `It prevents arbitrary tyranny by establishing mutual checks and balances among Legislature, Executive, and Judiciary`,
+              `It merges all branches under a single non-elected official`,
+              `It eliminates public elections and court reviews`,
+              `It removes all legal protections for citizens`,
+            ],
+            correctAnswer: 0,
+            explanation: `Separation of powers ensures no single branch possesses unchecked authority, safeguarding democratic liberty.`,
+            hints: ['Checks and balances between Legislature, Executive, and Judiciary.'],
+            stepByStepSolution: ['Three independent branches protect constitutional democracy.'],
+            status: 'published',
+          };
+        } else if (pattern === 2) {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'medium',
+            text: `[Geographical & Resource Distribution #${qNum}] In "${chap.title}": How does physical geography determine human settlement patterns?`,
+            options: [
+              `Availability of fresh water, fertile soil, and hospitable climates encourages denser human civilization and agriculture`,
+              `Human settlements thrive exclusively in barren, waterless desert dunes`,
+              `Topography and climate have zero impact on human settlement or economy`,
+              `Agriculture is most productive on frozen polar mountain peaks`,
+            ],
+            correctAnswer: 0,
+            explanation: `River basins and fertile plains historically provided the vital sustenance for flourishing civilizations.`,
+            hints: ['Water availability and fertile soils drive human settlements.'],
+            stepByStepSolution: ['Physical geography directly shapes economic activities and settlement density.'],
+            status: 'published',
+          };
+        } else {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'hard',
+            text: `[Analytical Evaluation #${qNum}] In "${chap.title}": When evaluating primary source evidence or historical documents, what critical step must be taken?`,
+            options: [
+              `Corroborate accounts across multiple independent sources and assess the context and authorship`,
+              `Accept a single unverified claim without questioning potential bias`,
+              `Discard all archaeological artifacts that do not align with modern assumptions`,
+              `Ignore the time period and language of the original author`,
+            ],
+            correctAnswer: 0,
+            explanation: `Critical historical inquiry requires evaluating provenance, intent, and corroboration with archaeological evidence.`,
+            hints: ['Cross-reference multiple sources to verify historical reliability.'],
+            stepByStepSolution: ['Check author context, cross-verify with other documents, evaluate evidence.'],
+            status: 'published',
+          };
+        }
+      }
+
+      const cleanText = newQ.text.trim();
+      if (!seenTexts.has(cleanText)) {
+        seenTexts.add(cleanText);
+        subjectQuestions.push(balanceQuestionOptions(newQ, `mock-seed-${subjectId}-${qNum}`));
+      }
+    }
+  }
+
+  // Deterministically balance all options across A, B, C, D and ensure uniqueness
   return subjectQuestions.slice(0, targetCount).map((q, idx) =>
     balanceQuestionOptions(q, `${q.id}-${idx}-mockfinal`)
   );

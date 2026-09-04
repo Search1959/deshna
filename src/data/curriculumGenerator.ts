@@ -1,4 +1,13 @@
 import { Chapter, Topic, Question, Lesson, Subject, DifficultyLevel } from '../types';
+import { RawQuestionData } from './curriculumGeneratorTypes';
+import { MATH_CHAPTER_QUESTIONS } from './mathQuestionsBank';
+import { SENIOR_MATH_CHAPTER_QUESTIONS } from './seniorMathQuestionsBank';
+import { SCIENCE_CHAPTER_QUESTIONS } from './scienceQuestionsBank';
+import { SENIOR_SCIENCE_CHAPTER_QUESTIONS } from './seniorScienceQuestionsBank';
+import { SOCIAL_SCIENCE_CHAPTER_QUESTIONS } from './socialScienceQuestionsBank';
+import { ENGLISH_CHAPTER_QUESTIONS } from './englishQuestionsBank';
+import { HUMANITIES_CHAPTER_QUESTIONS } from './humanitiesQuestionsBank';
+import { synthesizeChapterCurriculumQuestions } from './curriculumSynthesizer';
 
 /**
  * Subject-specific topic generator matrices
@@ -261,18 +270,45 @@ export function generateCurriculumQuestionsForChapter(
   });
 }
 
-interface RawQuestionData {
-  text: string;
-  options: string[];
-  correctAnswer: number;
-  explanation: string;
-  hints: string[];
-  type?: 'mcq' | 'numerical' | 'short_answer';
-  difficulty?: DifficultyLevel;
-  steps?: string[];
+function deriveQuestionTemplates(
+  chapter: Chapter,
+  subject: Subject,
+  chapterTopics: Topic[]
+): RawQuestionData[] {
+  // 1. First priority: check handcrafted bespoke chapter question banks
+  if (MATH_CHAPTER_QUESTIONS[chapter.id]) {
+    return MATH_CHAPTER_QUESTIONS[chapter.id];
+  }
+  if (SENIOR_MATH_CHAPTER_QUESTIONS[chapter.id]) {
+    return SENIOR_MATH_CHAPTER_QUESTIONS[chapter.id];
+  }
+  if (SCIENCE_CHAPTER_QUESTIONS[chapter.id]) {
+    return SCIENCE_CHAPTER_QUESTIONS[chapter.id];
+  }
+  if (SENIOR_SCIENCE_CHAPTER_QUESTIONS[chapter.id]) {
+    return SENIOR_SCIENCE_CHAPTER_QUESTIONS[chapter.id];
+  }
+  if (SOCIAL_SCIENCE_CHAPTER_QUESTIONS[chapter.id]) {
+    return SOCIAL_SCIENCE_CHAPTER_QUESTIONS[chapter.id];
+  }
+  if (ENGLISH_CHAPTER_QUESTIONS[chapter.id]) {
+    return ENGLISH_CHAPTER_QUESTIONS[chapter.id];
+  }
+  if (HUMANITIES_CHAPTER_QUESTIONS[chapter.id]) {
+    return HUMANITIES_CHAPTER_QUESTIONS[chapter.id];
+  }
+
+  // 2. Second priority: check existing authentic legacy question templates
+  const legacyTemplates = legacyDeriveQuestionTemplates(chapter, subject, chapterTopics);
+  if (legacyTemplates && legacyTemplates.length > 0) {
+    return legacyTemplates;
+  }
+
+  // 3. Domain-Specific Synthesizer for all remaining curriculum chapters
+  return synthesizeChapterCurriculumQuestions(chapter, subject, chapterTopics);
 }
 
-function deriveQuestionTemplates(
+function legacyDeriveQuestionTemplates(
   chapter: Chapter,
   subject: Subject,
   chapterTopics: Topic[]

@@ -119,7 +119,8 @@ export function evaluateReadingAttempt(
   if (cleanTranscript.length === 0 || totalSpokenWords === 0) {
     const hadVoiceSound = Boolean(
       (options?.voiceActivitySeconds && options.voiceActivitySeconds >= 1.5) ||
-      options?.hasAudioLevel
+      options?.hasAudioLevel ||
+      (elapsedSeconds >= 3 && options?.speechServiceAvailable === false)
     );
 
     if (hadVoiceSound) {
@@ -134,8 +135,8 @@ export function evaluateReadingAttempt(
         passageCoveragePercent: 0,
         xpAwarded: 15,
         status: 'needs_practice',
-        statusTitle: `🎙️ Voice Captured (${detectedSecs}s) • Words Not Transcribed`,
-        diagnosticAdvice: `Your voice was actively detected on the microphone for ${detectedSecs} seconds! However, the speech-to-text engine could not recognize individual ${languageName} words. Try speaking slightly slower, closer to your microphone, or check if your browser requires microphone permission approval.`,
+        statusTitle: `🎙️ Voice Activity Recorded (${detectedSecs}s)`,
+        diagnosticAdvice: `Your voice activity was registered for ${detectedSecs} seconds! The browser speech-to-text service did not return individual words (common in sandboxed iframes or non-Chrome browsers). You can use "Simulate Speech Demo" or "Type Transcript" to test word-by-word matching.`,
         wordStatuses: passageWords.map((w) => ({ ...w, status: 'unread' })),
         spokenTranscript: '',
         struggledWords: [],
@@ -153,7 +154,7 @@ export function evaluateReadingAttempt(
       xpAwarded: 0,
       status: 'no_speech',
       statusTitle: 'No Speech Detected',
-      diagnosticAdvice: `We did not capture any speech audio for ${languageName}. Please check your microphone permissions and speak clearly into the microphone.`,
+      diagnosticAdvice: `We did not capture speech audio for ${languageName}. Check that your microphone is plugged in and permissions are granted, or click "Simulate Speech Demo" to test the speech detector immediately.`,
       wordStatuses: passageWords.map((w) => ({ ...w, status: 'skipped' })),
       spokenTranscript: '',
       struggledWords: [],
