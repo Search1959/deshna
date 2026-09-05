@@ -29,9 +29,19 @@ import {
   GraduationCap,
   Volume2,
   CheckCircle,
+  ChevronLeft,
+  ChevronsLeft,
+  ChevronsRight,
+  Send,
+  Edit3,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { getMockExamQuestionsForSubject } from '../data/curriculumData';
+import {
+  isStudentAnswerCorrect,
+  getCorrectAnswerDisplay,
+  getCorrectOptionIndex,
+} from '../utils/answerChecker';
 
 export const ExamPrepView: React.FC = () => {
   const {
@@ -65,7 +75,10 @@ export const ExamPrepView: React.FC = () => {
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState<string>('all');
   const [selectedDifficultyFilter, setSelectedDifficultyFilter] = useState<string>('all');
   const [revealedSolutions, setRevealedSolutions] = useState<Record<string, boolean>>({});
-  const [userPracticeAnswers, setUserPracticeAnswers] = useState<Record<string, number>>({});
+  const [userPracticeAnswers, setUserPracticeAnswers] = useState<Record<string, any>>({});
+  const [practiceInputDrafts, setPracticeInputDrafts] = useState<Record<string, string>>({});
+  const [practicePage, setPracticePage] = useState<number>(1);
+  const [practicePageSize, setPracticePageSize] = useState<number>(20);
 
   // Synchronize when examPrepInitialTab changes externally
   useEffect(() => {
@@ -95,7 +108,7 @@ export const ExamPrepView: React.FC = () => {
   const [activeSubject, setActiveSubject] = useState<any>(null);
   const [testQuestions, setTestQuestions] = useState<any[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, any>>({});
   const [flaggedQuestions, setFlaggedQuestions] = useState<Record<number, boolean>>({});
   const [timeLeftSeconds, setTimeLeftSeconds] = useState(1800); // 30 minutes for 30 questions
   const [initialDuration, setInitialDuration] = useState(1800);
@@ -104,18 +117,6 @@ export const ExamPrepView: React.FC = () => {
 
   const availableSubjs = getFilteredSubjects(selectedBoardId, selectedGradeFilter, selectedStreamId).map(localizeSubject);
   const gradeSubjects = availableSubjs.length > 0 ? availableSubjs : subjects.filter((s) => s.gradeId === selectedGradeFilter).map(localizeSubject);
-
-  const getCorrectOptionIndex = (q: any): number => {
-    if (typeof q?.correctOptionIndex === 'number') return q.correctOptionIndex;
-    if (typeof q?.correctAnswer === 'number') return q.correctAnswer;
-    if (typeof q?.correctAnswer === 'string') {
-      const idx = q.options?.findIndex((opt: string) => opt.toLowerCase() === q.correctAnswer.toLowerCase());
-      if (idx !== -1 && idx !== undefined) return idx;
-      const letterIdx = q.correctAnswer.charCodeAt(0) - 65;
-      if (letterIdx >= 0 && letterIdx < (q.options?.length || 4)) return letterIdx;
-    }
-    return 0;
-  };
 
   // Shuffles both the questions order and the 4 options within each question
   const shuffleQuestionsAndOptions = (qs: any[]): any[] => {
@@ -285,10 +286,38 @@ export const ExamPrepView: React.FC = () => {
     });
   }, [gradeQuestionsPool, questionSearchQuery, selectedSubjectFilter, selectedDifficultyFilter]);
 
-  const handlePracticeOptionClick = (questionId: string, optionIdx: number, correctIdx: number) => {
+  // Reset practice page whenever filters change
+  useEffect(() => {
+    setPracticePage(1);
+  }, [questionSearchQuery, selectedSubjectFilter, selectedDifficultyFilter, selectedGradeFilter]);
+
+  const effectivePageSize = practicePageSize === 0 ? Math.max(1, filteredGradeQuestions.length) : practicePageSize;
+  const totalPracticePages = Math.max(1, Math.ceil(filteredGradeQuestions.length / effectivePageSize));
+
+  const paginatedPracticeQuestions = useMemo(() => {
+    if (practicePageSize === 0) return filteredGradeQuestions;
+    const start = (practicePage - 1) * practicePageSize;
+    return filteredGradeQuestions.slice(start, start + practicePageSize);
+  }, [filteredGradeQuestions, practicePage, practicePageSize]);
+
+  const handlePracticeOptionClick = (questionId: string, optionIdx: number, q: Question) => {
     setUserPracticeAnswers((prev) => ({ ...prev, [questionId]: optionIdx }));
-    if (optionIdx === correctIdx) {
+    const isCorrect = isStudentAnswerCorrect(q, optionIdx);
+    if (isCorrect) {
       awardPoints(5, 'Mastered practice question!');
+      try {
+        confetti({ particleCount: 30, spread: 60, origin: { y: 0.85 } });
+      } catch {}
+    }
+  };
+
+  const handlePracticeInputSubmit = (questionId: string, q: Question) => {
+    const textVal = practiceInputDrafts[questionId]?.trim() || '';
+    if (!textVal) return;
+    setUserPracticeAnswers((prev) => ({ ...prev, [questionId]: textVal }));
+    const isCorrect = isStudentAnswerCorrect(q, textVal);
+    if (isCorrect) {
+      awardPoints(5, 'Mastered fill-in/input question!');
       try {
         confetti({ particleCount: 30, spread: 60, origin: { y: 0.85 } });
       } catch {}
@@ -299,15 +328,147 @@ export const ExamPrepView: React.FC = () => {
     setRevealedSolutions((prev) => ({ ...prev, [questionId]: !prev[questionId] }));
   };
 
+  const handlePageChange = (newPage: number) => {
+    const target = Math.max(1, Math.min(totalPracticePages, newPage));
+    setPracticePage(target);
+    const el = document.getElementById('questions-practice-top');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const renderPaginationToolbar = (position: 'top' | 'bottom') => {
+    if (filteredGradeQuestions.length === 0) return null;
+
+    const startItem = practicePageSize === 0 ? 1 : (practicePage - 1) * practicePageSize + 1;
+    const endItem =
+      practicePageSize === 0
+        ? filteredGradeQuestions.length
+        : Math.min(filteredGradeQuestions.length, practicePage * practicePageSize);
+
+    return (
+      <div
+        className={`flex flex-wrap items-center justify-between gap-3 p-3.5 sm:p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs ${
+          position === 'top' ? 'mb-2' : 'mt-4'
+        }`}
+      >
+        {/* Count info */}
+        <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
+          <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 font-black border border-slate-200">
+            {startItem} – {endItem} of {filteredGradeQuestions.length} Questions
+          </span>
+          {practicePageSize > 0 && (
+            <span className="text-slate-400 hidden sm:inline">
+              (Page {practicePage} of {totalPracticePages})
+            </span>
+          )}
+        </div>
+
+        {/* Page navigation controls */}
+        {practicePageSize > 0 && totalPracticePages > 1 && (
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => handlePageChange(1)}
+              disabled={practicePage === 1}
+              title="First Page"
+              className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer text-slate-700"
+            >
+              <ChevronsLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => handlePageChange(practicePage - 1)}
+              disabled={practicePage === 1}
+              title="Previous Page"
+              className="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer text-xs font-bold text-slate-700 flex items-center gap-1"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Prev</span>
+            </button>
+
+            {/* Page number buttons */}
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPracticePages }, (_, i) => i + 1)
+                .filter((p) => {
+                  if (totalPracticePages <= 7) return true;
+                  if (p === 1 || p === totalPracticePages) return true;
+                  return Math.abs(p - practicePage) <= 1;
+                })
+                .map((p, idx, arr) => {
+                  const prevP = arr[idx - 1];
+                  const hasGap = prevP && p - prevP > 1;
+
+                  return (
+                    <React.Fragment key={p}>
+                      {hasGap && <span className="text-xs text-slate-400 px-1">...</span>}
+                      <button
+                        onClick={() => handlePageChange(p)}
+                        className={`w-8 h-8 rounded-xl font-black text-xs transition cursor-pointer flex items-center justify-center border ${
+                          practicePage === p
+                            ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                            : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    </React.Fragment>
+                  );
+                })}
+            </div>
+
+            <button
+              onClick={() => handlePageChange(practicePage + 1)}
+              disabled={practicePage === totalPracticePages}
+              title="Next Page"
+              className="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer text-xs font-bold text-slate-700 flex items-center gap-1"
+            >
+              <span className="hidden sm:inline">Next</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => handlePageChange(totalPracticePages)}
+              disabled={practicePage === totalPracticePages}
+              title="Last Page"
+              className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer text-slate-700"
+            >
+              <ChevronsRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* Page size dropdown / buttons */}
+        <div className="flex items-center gap-1.5 text-xs">
+          <span className="text-slate-500 font-bold hidden sm:inline">Per page:</span>
+          {[20, 50, 100, 0].map((size) => (
+            <button
+              key={size}
+              onClick={() => {
+                setPracticePageSize(size);
+                setPracticePage(1);
+              }}
+              className={`px-2 py-1 rounded-lg text-xs font-black border transition cursor-pointer ${
+                practicePageSize === size
+                  ? 'bg-slate-900 text-white border-slate-900'
+                  : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200'
+              }`}
+            >
+              {size === 0 ? 'All' : size}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   const calculateScore = () => {
     let correct = 0;
     let incorrect = 0;
     let unattempted = 0;
 
     testQuestions.forEach((q, idx) => {
-      if (selectedAnswers[idx] === undefined) {
+      const ans = selectedAnswers[idx];
+      if (ans === undefined || ans === '') {
         unattempted++;
-      } else if (selectedAnswers[idx] === getCorrectOptionIndex(q)) {
+      } else if (isStudentAnswerCorrect(q, ans)) {
         correct++;
       } else {
         incorrect++;
@@ -717,14 +878,24 @@ export const ExamPrepView: React.FC = () => {
               </div>
 
               {/* Questions Cards List - Card Ways Basis */}
-              <div className="space-y-4">
-                {filteredGradeQuestions.slice(0, 30).map((q, idx) => {
+              <div id="questions-practice-top" className="space-y-4">
+                {/* Top Pagination Toolbar */}
+                {renderPaginationToolbar('top')}
+
+                {paginatedPracticeQuestions.map((q, idx) => {
                   const qSubject = subjects.find((s) => s.id === q.subjectId);
-                  const correctIdx = getCorrectOptionIndex(q);
                   const userChoice = userPracticeAnswers[q.id];
-                  const isAnswered = userChoice !== undefined;
-                  const isCorrect = userChoice === correctIdx;
+                  const isAnswered = userChoice !== undefined && userChoice !== '';
+                  const isCorrect = isAnswered && isStudentAnswerCorrect(q, userChoice);
                   const isSolutionOpen = revealedSolutions[q.id];
+                  const itemIndex = practicePageSize === 0 ? idx : (practicePage - 1) * practicePageSize + idx;
+
+                  const isInteractiveText =
+                    q.questionType === 'fill_blank' ||
+                    q.questionType === 'numerical' ||
+                    q.questionType === 'short_answer' ||
+                    !q.options ||
+                    q.options.length === 0;
 
                   return (
                     <div
@@ -735,7 +906,7 @@ export const ExamPrepView: React.FC = () => {
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center space-x-2">
                           <span className="text-[10px] font-black px-2.5 py-0.5 rounded-lg bg-blue-50 text-blue-800 border border-blue-200">
-                            Q#{idx + 1} • {qSubject?.name || 'Curriculum'}
+                            Q#{itemIndex + 1} • {qSubject?.name || 'Curriculum'}
                           </span>
                           <span
                             className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
@@ -748,12 +919,15 @@ export const ExamPrepView: React.FC = () => {
                           >
                             {q.difficulty || 'medium'}
                           </span>
+                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
+                            {isInteractiveText ? (q.questionType === 'numerical' ? 'Write Numerical' : 'Fill in Blank') : 'Multiple Choice'}
+                          </span>
                         </div>
 
                         <div className="flex items-center space-x-1">
                           <button
                             onClick={() => speakText(q.text)}
-                            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition"
+                            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition cursor-pointer"
                             title="Read question aloud"
                           >
                             <Volume2 className="w-3.5 h-3.5" />
@@ -785,60 +959,105 @@ export const ExamPrepView: React.FC = () => {
                         {q.text}
                       </p>
 
-                      {/* 4 Interactive Option Choices - Touch Friendly */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                        {(q.options || ['Option A', 'Option B', 'Option C', 'Option D']).map(
-                          (opt: string, optIdx: number) => {
-                            const isThisSelected = userChoice === optIdx;
-                            const isThisCorrect = optIdx === correctIdx;
-                            const optionLetter = String.fromCharCode(65 + optIdx);
-
-                            let btnStyle = 'bg-slate-50 border-slate-200 text-slate-800 hover:bg-blue-50/60 hover:border-blue-300';
-                            if (isAnswered) {
-                              if (isThisSelected && isThisCorrect) {
-                                btnStyle = 'bg-emerald-50 border-emerald-500 text-emerald-950 ring-2 ring-emerald-300';
-                              } else if (isThisSelected && !isThisCorrect) {
-                                btnStyle = 'bg-rose-50 border-rose-500 text-rose-950 ring-2 ring-rose-300';
-                              } else if (isThisCorrect) {
-                                btnStyle = 'bg-emerald-50/60 border-emerald-400 text-emerald-900 border-dashed';
-                              }
-                            }
-
-                            return (
-                              <button
-                                key={optIdx}
-                                onClick={() => handlePracticeOptionClick(q.id, optIdx, correctIdx)}
-                                className={`w-full min-h-[44px] p-3 text-left rounded-xl border-2 text-xs sm:text-sm font-semibold transition-all flex items-center space-x-3 active:scale-[0.98] ${btnStyle}`}
-                              >
-                                <span
-                                  className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0 ${
-                                    isThisSelected && isThisCorrect
-                                      ? 'bg-emerald-600 text-white'
-                                      : isThisSelected && !isThisCorrect
-                                      ? 'bg-rose-600 text-white'
-                                      : 'bg-white border border-slate-300 text-slate-700'
-                                  }`}
-                                >
-                                  {optionLetter}
+                      {/* Interactive Section: Input Box vs MCQ Buttons */}
+                      {isInteractiveText ? (
+                        <div className="space-y-3 pt-1">
+                          <div className="p-4 bg-amber-50/70 rounded-2xl border-2 border-amber-200 space-y-2.5">
+                            <div className="flex items-center justify-between">
+                              <label className="text-xs font-black uppercase text-amber-900 tracking-wider flex items-center gap-1.5">
+                                <Edit3 className="w-3.5 h-3.5 text-amber-700" />
+                                <span>✍️ Type Your Answer (Fill in the Blank):</span>
+                              </label>
+                              {isAnswered && (
+                                <span className={`text-[11px] font-black px-2 py-0.5 rounded-md ${isCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                                  {isCorrect ? '✓ Correct Answer' : '✗ Try Again'}
                                 </span>
-                                <span className="flex-1">{opt}</span>
-                                {isAnswered && isThisCorrect && (
-                                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                                )}
-                                {isAnswered && isThisSelected && !isThisCorrect && (
-                                  <XCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
-                                )}
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={practiceInputDrafts[q.id] !== undefined ? practiceInputDrafts[q.id] : (typeof userChoice === 'string' ? userChoice : '')}
+                                onChange={(e) => setPracticeInputDrafts((prev) => ({ ...prev, [q.id]: e.target.value }))}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handlePracticeInputSubmit(q.id, q);
+                                  }
+                                }}
+                                placeholder="Type your answer here (e.g., Photosynthesis, 12, True)..."
+                                className="flex-1 p-3 rounded-xl border-2 border-amber-300 focus:border-blue-500 bg-white font-bold text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-200 transition shadow-inner"
+                              />
+                              <button
+                                onClick={() => handlePracticeInputSubmit(q.id, q)}
+                                className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-xs transition flex items-center space-x-1.5 shrink-0 cursor-pointer"
+                              >
+                                <Send className="w-3.5 h-3.5" />
+                                <span>Check</span>
                               </button>
-                            );
-                          }
-                        )}
-                      </div>
+                            </div>
+                            {isAnswered && !isCorrect && (
+                              <p className="text-[11px] text-rose-700 font-bold">
+                                Not quite right. Check your spelling or calculation, or click "View Solution & Steps" below.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                          {(q.options || ['Option A', 'Option B', 'Option C', 'Option D']).map(
+                            (opt: string, optIdx: number) => {
+                              const isThisSelected = userChoice === optIdx;
+                              const correctIdx = getCorrectOptionIndex(q);
+                              const isThisCorrect = optIdx === correctIdx;
+                              const optionLetter = String.fromCharCode(65 + optIdx);
+
+                              let btnStyle = 'bg-slate-50 border-slate-200 text-slate-800 hover:bg-blue-50/60 hover:border-blue-300';
+                              if (isAnswered) {
+                                if (isThisSelected && isThisCorrect) {
+                                  btnStyle = 'bg-emerald-50 border-emerald-500 text-emerald-950 ring-2 ring-emerald-300';
+                                } else if (isThisSelected && !isThisCorrect) {
+                                  btnStyle = 'bg-rose-50 border-rose-500 text-rose-950 ring-2 ring-rose-300';
+                                } else if (isThisCorrect) {
+                                  btnStyle = 'bg-emerald-50/60 border-emerald-400 text-emerald-900 border-dashed';
+                                }
+                              }
+
+                              return (
+                                <button
+                                  key={optIdx}
+                                  onClick={() => handlePracticeOptionClick(q.id, optIdx, q)}
+                                  className={`w-full min-h-[44px] p-3 text-left rounded-xl border-2 text-xs sm:text-sm font-semibold transition-all flex items-center space-x-3 active:scale-[0.98] cursor-pointer ${btnStyle}`}
+                                >
+                                  <span
+                                    className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0 ${
+                                      isThisSelected && isThisCorrect
+                                        ? 'bg-emerald-600 text-white'
+                                        : isThisSelected && !isThisCorrect
+                                        ? 'bg-rose-600 text-white'
+                                        : 'bg-white border border-slate-300 text-slate-700'
+                                    }`}
+                                  >
+                                    {optionLetter}
+                                  </span>
+                                  <span className="flex-1">{opt}</span>
+                                  {isAnswered && isThisCorrect && (
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                                  )}
+                                  {isAnswered && isThisSelected && !isThisCorrect && (
+                                    <XCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                                  )}
+                                </button>
+                              );
+                            }
+                          )}
+                        </div>
+                      )}
 
                       {/* Card Action Buttons: Only Required Buttons */}
                       <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
                         <button
                           onClick={() => toggleRevealSolution(q.id)}
-                          className="px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 transition flex items-center space-x-1.5 min-h-[40px]"
+                          className="px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 transition flex items-center space-x-1.5 min-h-[40px] cursor-pointer"
                         >
                           <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
                           <span>{isSolutionOpen ? 'Hide Solution' : 'View Solution & Steps'}</span>
@@ -852,7 +1071,7 @@ export const ExamPrepView: React.FC = () => {
                               topic: `Explain question: ${q.text}`,
                             })
                           }
-                          className="px-3 py-1.5 text-xs font-bold rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 transition flex items-center space-x-1.5 min-h-[40px]"
+                          className="px-3 py-1.5 text-xs font-bold rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 transition flex items-center space-x-1.5 min-h-[40px] cursor-pointer"
                         >
                           <Sparkles className="w-3.5 h-3.5 text-blue-600" />
                           <span>Ask AI Tutor</span>
@@ -861,19 +1080,32 @@ export const ExamPrepView: React.FC = () => {
 
                       {/* Step-by-Step Solution Breakdown */}
                       {isSolutionOpen && (
-                        <div className="p-3.5 bg-amber-50/70 rounded-xl border border-amber-200 space-y-1.5 text-xs text-amber-950 animate-in fade-in duration-150">
+                        <div className="p-3.5 bg-amber-50/70 rounded-xl border border-amber-200 space-y-2 text-xs text-amber-950 animate-in fade-in duration-150">
                           <div className="font-black text-amber-900 flex items-center space-x-1.5">
                             <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>Correct Answer: Option {String.fromCharCode(65 + correctIdx)} ({q.options?.[correctIdx] || ''})</span>
+                            <span>Correct / Accepted Answer: {getCorrectAnswerDisplay(q)}</span>
                           </div>
                           <p className="font-medium text-slate-700 leading-relaxed">
                             {q.explanation || 'According to the curriculum standard, this concept applies the fundamental definition taught in this chapter.'}
                           </p>
+                          {q.stepByStepSolution && q.stepByStepSolution.length > 0 && (
+                            <div className="pt-2 border-t border-amber-200/60 space-y-1">
+                              <span className="font-bold text-amber-900 uppercase text-[10px] tracking-wider block">Step-by-Step Solution:</span>
+                              <ul className="list-disc list-inside space-y-0.5 text-[11px] text-slate-700">
+                                {q.stepByStepSolution.map((s: string, sIdx: number) => (
+                                  <li key={sIdx}>{s}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
                   );
                 })}
+
+                {/* Bottom Pagination Toolbar */}
+                {renderPaginationToolbar('bottom')}
 
                 {filteredGradeQuestions.length === 0 && (
                   <div className="text-center py-10 space-y-3 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
@@ -993,35 +1225,77 @@ export const ExamPrepView: React.FC = () => {
                 )}
               </div>
 
-              {/* 4 Options Grid */}
-              <div className="space-y-2.5 pt-2">
-                {currentQ.options?.map((opt: string, optIdx: number) => {
-                  const isSelected = selectedAnswers[currentIdx] === optIdx;
+              {/* Options Grid OR Text Write-In Field */}
+              {(() => {
+                const isInteractiveText =
+                  currentQ?.questionType === 'fill_blank' ||
+                  currentQ?.questionType === 'numerical' ||
+                  currentQ?.questionType === 'short_answer' ||
+                  !currentQ?.options ||
+                  currentQ.options.length === 0;
+
+                if (isInteractiveText) {
+                  const currentTyped = typeof selectedAnswers[currentIdx] === 'string' ? selectedAnswers[currentIdx] : '';
                   return (
-                    <button
-                      key={optIdx}
-                      onClick={() => setSelectedAnswers({ ...selectedAnswers, [currentIdx]: optIdx })}
-                      className={`w-full p-3.5 sm:p-4 rounded-2xl border-2 text-left text-xs sm:text-sm transition flex items-center space-x-3.5 ${
-                        isSelected
-                          ? 'bg-[#FFE4E6] border-[#E11D48] text-[#881337] font-black shadow-xs ring-2 ring-[#E11D48]/30'
-                          : 'bg-[#FFF1F2]/60 hover:bg-[#FFE4E6] border-[#FECDD3] text-slate-800 font-bold'
-                      }`}
-                    >
-                      <span
-                        className={`w-7 h-7 rounded-xl border-2 shrink-0 flex items-center justify-center font-black text-xs ${
-                          isSelected
-                            ? 'bg-[#E11D48] text-white border-[#BE123C]'
-                            : 'bg-white border-[#FDA4AF] text-[#BE123C]'
-                        }`}
-                      >
-                        {String.fromCharCode(65 + optIdx)}
-                      </span>
-                      <span className="flex-1 leading-snug">{opt}</span>
-                      {isSelected && <Check className="w-4 h-4 text-[#E11D48] shrink-0" />}
-                    </button>
+                    <div className="space-y-3 pt-2">
+                      <div className="p-4 bg-amber-50/80 rounded-2xl border-2 border-amber-200 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-black uppercase text-amber-900 tracking-wider flex items-center gap-1.5">
+                            <Edit3 className="w-4 h-4 text-amber-700" />
+                            <span>✍️ Type Your Answer in the Input Box:</span>
+                          </label>
+                          {currentTyped && (
+                            <span className="text-[11px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
+                              Answer Saved
+                            </span>
+                          )}
+                        </div>
+                        <input
+                          type="text"
+                          value={currentTyped}
+                          onChange={(e) => setSelectedAnswers({ ...selectedAnswers, [currentIdx]: e.target.value })}
+                          placeholder="Type your answer here (e.g., Photosynthesis, 12, True)..."
+                          className="w-full p-3.5 sm:p-4 rounded-xl border-2 border-amber-300 focus:border-rose-500 bg-white font-bold text-sm sm:text-base text-slate-900 focus:outline-none focus:ring-3 focus:ring-rose-200 transition shadow-xs"
+                        />
+                        <p className="text-[11px] text-amber-800 font-medium">
+                          💡 <strong>Instruction:</strong> Enter your answer directly. Both numeric and text answers are evaluated upon test submission.
+                        </p>
+                      </div>
+                    </div>
                   );
-                })}
-              </div>
+                }
+
+                return (
+                  <div className="space-y-2.5 pt-2">
+                    {currentQ.options?.map((opt: string, optIdx: number) => {
+                      const isSelected = selectedAnswers[currentIdx] === optIdx;
+                      return (
+                        <button
+                          key={optIdx}
+                          onClick={() => setSelectedAnswers({ ...selectedAnswers, [currentIdx]: optIdx })}
+                          className={`w-full p-3.5 sm:p-4 rounded-2xl border-2 text-left text-xs sm:text-sm transition flex items-center space-x-3.5 cursor-pointer ${
+                            isSelected
+                              ? 'bg-[#FFE4E6] border-[#E11D48] text-[#881337] font-black shadow-xs ring-2 ring-[#E11D48]/30'
+                              : 'bg-[#FFF1F2]/60 hover:bg-[#FFE4E6] border-[#FECDD3] text-slate-800 font-bold'
+                          }`}
+                        >
+                          <span
+                            className={`w-7 h-7 rounded-xl border-2 shrink-0 flex items-center justify-center font-black text-xs ${
+                              isSelected
+                                ? 'bg-[#E11D48] text-white border-[#BE123C]'
+                                : 'bg-white border-[#FDA4AF] text-[#BE123C]'
+                            }`}
+                          >
+                            {String.fromCharCode(65 + optIdx)}
+                          </span>
+                          <span className="flex-1 leading-snug">{opt}</span>
+                          {isSelected && <Check className="w-4 h-4 text-[#E11D48] shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Bottom Action Controls */}
@@ -1279,9 +1553,8 @@ export const ExamPrepView: React.FC = () => {
             {testQuestions
               .filter((q, idx) => {
                 const userAns = selectedAnswers[idx];
-                const correctIdx = getCorrectOptionIndex(q);
-                const isCorrect = userAns === correctIdx;
-                if (resultFilter === 'incorrect') return userAns !== undefined && !isCorrect;
+                const isCorrect = isStudentAnswerCorrect(q, userAns);
+                if (resultFilter === 'incorrect') return (userAns !== undefined && userAns !== '') && !isCorrect;
                 if (resultFilter === 'correct') return isCorrect;
                 if (resultFilter === 'flagged') return flaggedQuestions[idx];
                 return true;
@@ -1292,8 +1565,15 @@ export const ExamPrepView: React.FC = () => {
                 const itemNumber = originalIdx !== -1 ? originalIdx + 1 : idx + 1;
                 const userAns = selectedAnswers[originalIdx !== -1 ? originalIdx : idx];
                 const correctIdx = getCorrectOptionIndex(rawQ);
-                const isAnswered = userAns !== undefined;
-                const isCorrect = isAnswered && userAns === correctIdx;
+                const isAnswered = userAns !== undefined && userAns !== '';
+                const isCorrect = isAnswered && isStudentAnswerCorrect(rawQ, userAns);
+
+                const isInteractiveText =
+                  rawQ.questionType === 'fill_blank' ||
+                  rawQ.questionType === 'numerical' ||
+                  rawQ.questionType === 'short_answer' ||
+                  !rawQ.options ||
+                  rawQ.options.length === 0;
 
                 return (
                   <div
@@ -1311,6 +1591,9 @@ export const ExamPrepView: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <span className="font-black text-xs bg-white px-2.5 py-0.5 rounded-md border border-slate-300 text-slate-800">
                             Question {itemNumber} of {testQuestions.length}
+                          </span>
+                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
+                            {isInteractiveText ? (rawQ.questionType === 'numerical' ? 'Numerical' : 'Fill in Blank') : 'Multiple Choice'}
                           </span>
                           {flaggedQuestions[itemNumber - 1] && (
                             <span className="text-[10px] font-black text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md">
@@ -1339,42 +1622,67 @@ export const ExamPrepView: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Option Choices Breakdown */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                      {q.options?.map((opt: string, optIndex: number) => {
-                        const isStudentChoice = userAns === optIndex;
-                        const isThisCorrect = correctIdx === optIndex;
-
-                        let optStyle = 'bg-white text-slate-700 border-slate-200';
-                        if (isThisCorrect) {
-                          optStyle = 'bg-emerald-100 text-emerald-950 font-black border-emerald-400 ring-2 ring-emerald-400/40';
-                        } else if (isStudentChoice && !isThisCorrect) {
-                          optStyle = 'bg-rose-100 text-rose-950 font-black border-rose-400';
-                        }
-
-                        return (
-                          <div
-                            key={optIndex}
-                            className={`p-2.5 rounded-xl border flex items-center space-x-2 ${optStyle}`}
+                    {/* Option Choices Breakdown OR Write-in Student Response */}
+                    {isInteractiveText ? (
+                      <div className="p-3.5 bg-white/90 rounded-xl border border-slate-200 text-xs space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-bold text-slate-500">Your Answer:</span>
+                          <span
+                            className={`font-black px-2.5 py-1 rounded-lg ${
+                              !isAnswered
+                                ? 'bg-slate-100 text-slate-500'
+                                : isCorrect
+                                ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                                : 'bg-rose-100 text-rose-900 border border-rose-300'
+                            }`}
                           >
-                            <span className="w-5 h-5 rounded-md bg-white border border-slate-300 flex items-center justify-center font-bold text-[10px] shrink-0">
-                              {String.fromCharCode(65 + optIndex)}
-                            </span>
-                            <span className="flex-1">{opt}</span>
-                            {isThisCorrect && (
-                              <span className="text-[10px] bg-emerald-600 text-white font-black px-1.5 py-0.5 rounded">
-                                Correct
+                            {!isAnswered ? '(Unanswered)' : String(userAns)}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-bold text-emerald-800">Accepted / Correct Answer:</span>
+                          <span className="font-black text-emerald-900 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                            {getCorrectAnswerDisplay(rawQ)}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        {q.options?.map((opt: string, optIndex: number) => {
+                          const isStudentChoice = userAns === optIndex;
+                          const isThisCorrect = correctIdx === optIndex;
+
+                          let optStyle = 'bg-white text-slate-700 border-slate-200';
+                          if (isThisCorrect) {
+                            optStyle = 'bg-emerald-100 text-emerald-950 font-black border-emerald-400 ring-2 ring-emerald-400/40';
+                          } else if (isStudentChoice && !isThisCorrect) {
+                            optStyle = 'bg-rose-100 text-rose-950 font-black border-rose-400';
+                          }
+
+                          return (
+                            <div
+                              key={optIndex}
+                              className={`p-2.5 rounded-xl border flex items-center space-x-2 ${optStyle}`}
+                            >
+                              <span className="w-5 h-5 rounded-md bg-white border border-slate-300 flex items-center justify-center font-bold text-[10px] shrink-0">
+                                {String.fromCharCode(65 + optIndex)}
                               </span>
-                            )}
-                            {isStudentChoice && !isThisCorrect && (
-                              <span className="text-[10px] bg-rose-600 text-white font-black px-1.5 py-0.5 rounded">
-                                Your Choice
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
+                              <span className="flex-1">{opt}</span>
+                              {isThisCorrect && (
+                                <span className="text-[10px] bg-emerald-600 text-white font-black px-1.5 py-0.5 rounded">
+                                  Correct
+                                </span>
+                              )}
+                              {isStudentChoice && !isThisCorrect && (
+                                <span className="text-[10px] bg-rose-600 text-white font-black px-1.5 py-0.5 rounded">
+                                  Your Choice
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
 
                     {/* Detailed Pedagogical Explanation */}
                     {q.explanation && (

@@ -3,6 +3,9 @@ import { ALL_CHAPTERS } from './chaptersData';
 import { ALL_SUBJECTS } from './subjectsData';
 import { ALL_TOPICS } from './topicsData';
 import { generateCurriculumQuestionsForChapter, balanceQuestionOptions } from './curriculumGenerator';
+import { FILL_IN_BLANK_QUESTIONS } from './fillInBlankQuestionsBank';
+
+export { FILL_IN_BLANK_QUESTIONS };
 
 export const BESPOKE_PRESEEDED_QUESTIONS: Question[] = [
   // ================= GRADE 1 QUESTIONS =================
@@ -622,7 +625,12 @@ function buildAllQuestions(): Question[] {
   );
   balancedBespoke.forEach((q) => manualMap.set(q.id, q));
 
-  const result: Question[] = [...balancedBespoke];
+  // Add 100+ fill in the blank and write-in input questions
+  FILL_IN_BLANK_QUESTIONS.forEach((q) => {
+    manualMap.set(q.id, q);
+  });
+
+  const result: Question[] = [...balancedBespoke, ...FILL_IN_BLANK_QUESTIONS];
   const subjectMap = new Map(ALL_SUBJECTS.map((s) => [s.id, s]));
   const normSubjectMap = new Map(ALL_SUBJECTS.map((s) => [normalizeSubjectKey(s.id), s]));
 

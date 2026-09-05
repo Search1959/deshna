@@ -23,8 +23,11 @@ import {
   Plus,
   Shuffle,
   HelpCircle,
+  Edit3,
+  Send,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { isStudentAnswerCorrect, getCorrectAnswerDisplay } from '../utils/answerChecker';
 
 export const ChapterView: React.FC = () => {
   const {
@@ -61,6 +64,7 @@ export const ChapterView: React.FC = () => {
   // Practice session state
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [typedAnswer, setTypedAnswer] = useState<string>('');
   const [isAnswerSubmitted, setIsAnswerSubmitted] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [quizScore, setQuizScore] = useState(0);
@@ -104,6 +108,13 @@ export const ChapterView: React.FC = () => {
   ).map(localizeQuestion);
   const activeQuestion = allChapterQuestions[currentQIndex] || allChapterQuestions[0];
 
+  const isInteractiveText =
+    activeQuestion?.questionType === 'fill_blank' ||
+    activeQuestion?.questionType === 'numerical' ||
+    activeQuestion?.questionType === 'short_answer' ||
+    !activeQuestion?.options ||
+    activeQuestion.options.length === 0;
+
   const handleSelectOption = (idx: number) => {
     if (isAnswerSubmitted) return;
     setSelectedOption(idx);
@@ -121,10 +132,12 @@ export const ChapterView: React.FC = () => {
   };
 
   const handleSubmitAnswer = () => {
-    if (isAnswerSubmitted || !activeQuestion || selectedOption === null) return;
+    if (isAnswerSubmitted || !activeQuestion) return;
+    if (!isInteractiveText && selectedOption === null) return;
+    if (isInteractiveText && !typedAnswer.trim()) return;
 
-    const correctIdx = getCorrectOptionIndex(activeQuestion);
-    const isCorrect = selectedOption === correctIdx;
+    const studentAns = isInteractiveText ? typedAnswer.trim() : selectedOption;
+    const isCorrect = isStudentAnswerCorrect(activeQuestion, studentAns);
 
     setIsAnswerSubmitted(true);
 
@@ -146,6 +159,7 @@ export const ChapterView: React.FC = () => {
     if (currentQIndex < allChapterQuestions.length - 1) {
       setCurrentQIndex((prev) => prev + 1);
       setSelectedOption(null);
+      setTypedAnswer('');
       setIsAnswerSubmitted(false);
       setShowHint(false);
     } else {
@@ -157,6 +171,7 @@ export const ChapterView: React.FC = () => {
     setShowDetailedAnswerModal(false);
     setCurrentQIndex(0);
     setSelectedOption(null);
+    setTypedAnswer('');
     setIsAnswerSubmitted(false);
     setShowHint(false);
     setQuizScore(0);
@@ -197,6 +212,7 @@ export const ChapterView: React.FC = () => {
     setShuffledQuestions(rebalancedQuestions);
     setCurrentQIndex(0);
     setSelectedOption(null);
+    setTypedAnswer('');
     setIsAnswerSubmitted(false);
     setShowHint(false);
     setQuizScore(0);
@@ -543,48 +559,109 @@ export const ChapterView: React.FC = () => {
                 )}
               </div>
 
-              {/* Options for MCQ */}
-              {activeQuestion.options && (
-                <div className="space-y-2.5">
-                  {activeQuestion.options.map((opt, idx) => {
-                    const isSelected = selectedOption === idx;
-                    const correctIdx = getCorrectOptionIndex(activeQuestion);
-                    const isCorrect = idx === correctIdx;
-                    let btnStyle = 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-800';
+              {/* Options for MCQ OR Write-in Input Box for Fill-in-Blank */}
+              {isInteractiveText ? (
+                <div className="space-y-3">
+                  <div className="p-4 sm:p-5 bg-amber-50/80 rounded-2xl border-2 border-amber-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-black uppercase text-amber-900 tracking-wider flex items-center gap-1.5">
+                        <Edit3 className="w-4 h-4 text-amber-700" />
+                        <span>Type your answer in the input box below:</span>
+                      </label>
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-amber-200/70 text-amber-900">
+                        {activeQuestion.questionType === 'numerical' ? 'Numerical Answer' : 'Fill in the Blank'}
+                      </span>
+                    </div>
 
-                    if (isAnswerSubmitted) {
-                      if (isCorrect) {
-                        btnStyle = 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold';
-                      } else if (isSelected && !isCorrect) {
-                        btnStyle = 'bg-rose-50 border-rose-500 text-rose-900';
-                      }
-                    } else if (isSelected) {
-                      btnStyle = 'bg-blue-50 border-blue-600 text-blue-900 font-bold ring-1 ring-blue-600';
-                    }
-
-                    return (
-                      <button
-                        key={idx}
-                        onClick={() => handleSelectOption(idx)}
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={typedAnswer}
+                        onChange={(e) => setTypedAnswer(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !isAnswerSubmitted && typedAnswer.trim()) {
+                            handleSubmitAnswer();
+                          }
+                        }}
                         disabled={isAnswerSubmitted}
-                        className={`w-full p-3.5 rounded-2xl border text-left text-xs sm:text-sm transition flex items-center justify-between ${btnStyle}`}
-                      >
-                        <div className="flex items-center space-x-3">
-                          <span className="w-6 h-6 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-bold text-xs">
-                            {String.fromCharCode(65 + idx)}
+                        placeholder="Type your answer here..."
+                        className={`flex-1 p-3.5 rounded-xl border-2 font-bold text-sm sm:text-base focus:outline-none transition shadow-2xs ${
+                          isAnswerSubmitted
+                            ? isStudentAnswerCorrect(activeQuestion, typedAnswer.trim())
+                              ? 'bg-emerald-50 border-emerald-500 text-emerald-950 ring-2 ring-emerald-300/40'
+                              : 'bg-rose-50 border-rose-500 text-rose-950 ring-2 ring-rose-300/40'
+                            : 'bg-white border-amber-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 text-slate-900'
+                        }`}
+                      />
+                    </div>
+
+                    {isAnswerSubmitted && (
+                      <div className="p-3 rounded-xl bg-white border border-amber-200 text-xs space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-600">Your Answer:</span>
+                          <span
+                            className={`font-black px-2 py-0.5 rounded ${
+                              isStudentAnswerCorrect(activeQuestion, typedAnswer.trim())
+                                ? 'bg-emerald-100 text-emerald-900'
+                                : 'bg-rose-100 text-rose-900'
+                            }`}
+                          >
+                            {typedAnswer.trim()}
                           </span>
-                          <span>{opt}</span>
                         </div>
-                        {isAnswerSubmitted && isCorrect && (
-                          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                        )}
-                        {isAnswerSubmitted && isSelected && !isCorrect && (
-                          <XCircle className="w-5 h-5 text-rose-600" />
-                        )}
-                      </button>
-                    );
-                  })}
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-emerald-700">Accepted Answer:</span>
+                          <span className="font-black text-emerald-950 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                            {getCorrectAnswerDisplay(activeQuestion)}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
+              ) : (
+                activeQuestion.options && (
+                  <div className="space-y-2.5">
+                    {activeQuestion.options.map((opt, idx) => {
+                      const isSelected = selectedOption === idx;
+                      const correctIdx = getCorrectOptionIndex(activeQuestion);
+                      const isCorrect = idx === correctIdx;
+                      let btnStyle = 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-800';
+
+                      if (isAnswerSubmitted) {
+                        if (isCorrect) {
+                          btnStyle = 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold';
+                        } else if (isSelected && !isCorrect) {
+                          btnStyle = 'bg-rose-50 border-rose-500 text-rose-900';
+                        }
+                      } else if (isSelected) {
+                        btnStyle = 'bg-blue-50 border-blue-600 text-blue-900 font-bold ring-1 ring-blue-600';
+                      }
+
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => handleSelectOption(idx)}
+                          disabled={isAnswerSubmitted}
+                          className={`w-full p-3.5 rounded-2xl border text-left text-xs sm:text-sm transition flex items-center justify-between ${btnStyle}`}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <span className="w-6 h-6 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-bold text-xs">
+                              {String.fromCharCode(65 + idx)}
+                            </span>
+                            <span>{opt}</span>
+                          </div>
+                          {isAnswerSubmitted && isCorrect && (
+                            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                          )}
+                          {isAnswerSubmitted && isSelected && !isCorrect && (
+                            <XCircle className="w-5 h-5 text-rose-600" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )
               )}
 
               {/* Hint Reveal Section */}
@@ -646,15 +723,15 @@ export const ChapterView: React.FC = () => {
                 {!isAnswerSubmitted ? (
                   <button
                     onClick={handleSubmitAnswer}
-                    disabled={selectedOption === null}
-                    className="px-6 py-2.5 bg-[#3B82F6] hover:bg-[#2563EB] disabled:opacity-40 text-white font-bold text-xs rounded-xl shadow-xs transition"
+                    disabled={!isInteractiveText ? selectedOption === null : !typedAnswer.trim()}
+                    className="px-6 py-2.5 bg-[#3B82F6] hover:bg-[#2563EB] disabled:opacity-40 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
                   >
                     {t('submit_answer', 'Submit Answer')}
                   </button>
                 ) : (
                   <button
                     onClick={handleNextQuestion}
-                    className="px-6 py-2.5 bg-[#3B82F6] hover:bg-[#2563EB] text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center space-x-1"
+                    className="px-6 py-2.5 bg-[#3B82F6] hover:bg-[#2563EB] text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center space-x-1 cursor-pointer"
                   >
                     <span>{currentQIndex < allChapterQuestions.length - 1 ? t('next_question', 'Next Question') : t('finish_quiz', 'Finish Quiz')}</span>
                     <ArrowRight className="w-4 h-4" />
