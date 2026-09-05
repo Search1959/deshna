@@ -76,9 +76,9 @@ const AppShell: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#FFFBEB] text-[#1F2937] flex flex-col font-sans antialiased selection:bg-[#FBBF24] selection:text-[#78350F]">
+    <div className="min-h-screen bg-[#FFFBEB] text-[#1F2937] flex flex-col font-sans antialiased selection:bg-[#FBBF24] selection:text-[#78350F] w-full max-w-full overflow-x-hidden relative">
       <Header onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
-      <main className="flex-1 pb-28 xl:pb-8">
+      <main className="flex-1 pb-28 xl:pb-8 w-full max-w-full overflow-x-hidden">
         <MainContent />
       </main>
       <MobileNavigation onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />

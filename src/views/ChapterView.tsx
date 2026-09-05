@@ -317,7 +317,7 @@ export const ChapterView: React.FC = () => {
       </div>
 
       {/* Tab Navigation Controls: [LEARN] [PRACTICE] [SUMMARY & REVISION] */}
-      <div className="flex items-center space-x-2 overflow-x-auto pb-2 border-b-2 border-amber-200/80 -mx-3 px-3 sm:mx-0 sm:px-0">
+      <div className="flex items-center space-x-2 overflow-x-auto pb-2 border-b-2 border-amber-200/80 w-full max-w-full scrollbar-none">
         <button
           onClick={() => setActiveTab('learn')}
           className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-black transition flex items-center space-x-2 whitespace-nowrap min-h-[40px] shrink-0 ${

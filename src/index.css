@@ -1,7 +1,50 @@
 @import "tailwindcss";
 
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+    position: relative;
+    overscroll-behavior-x: none;
+    touch-action: pan-y pinch-zoom;
+    -webkit-overflow-scrolling: touch;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+    position: relative;
+    overscroll-behavior-x: none;
+    touch-action: pan-y pinch-zoom;
+    -webkit-overflow-scrolling: touch;
+    margin: 0;
+    padding: 0;
+  }
+
+  #root {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+    position: relative;
+  }
+}
+
 @layer utilities {
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0.5rem);
   }
+
+  .no-horizontal-overflow {
+    overflow-x: hidden;
+    max-width: 100%;
+    width: 100%;
+  }
 }
+

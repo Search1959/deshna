@@ -80,7 +80,7 @@ export const VocabularyView: React.FC = () => {
       {/* Control Bar: Status Tabs, Subject Filter, Search */}
       <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border-3 sm:border-4 border-[#C4B5FD] shadow-lg space-y-3 sm:space-y-4">
         {/* Status Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-3 border-b-2 border-purple-100 -mx-2 px-2 sm:mx-0 sm:px-0">
+        <div className="flex items-center gap-2 overflow-x-auto pb-3 border-b-2 border-purple-100 w-full max-w-full scrollbar-none">
           {[
             { id: 'all', label: 'All Terms', count: counts.all, color: 'bg-slate-200 text-slate-800' },
             { id: 'new', label: 'New', count: counts.new, color: 'bg-blue-200 text-blue-900' },

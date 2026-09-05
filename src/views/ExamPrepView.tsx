@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { DetailedAnswerModal } from '../components/DetailedAnswerModal';
 import { Question } from '../types';
@@ -328,6 +328,38 @@ export const ExamPrepView: React.FC = () => {
     setRevealedSolutions((prev) => ({ ...prev, [questionId]: !prev[questionId] }));
   };
 
+  // Mobile touch swipe handling: swipe right-to-left to advance question, swipe left-to-right to go to previous question
+  const touchStartXRef = useRef<number | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
+
+  const handleTestTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.touches[0].clientX;
+    touchStartYRef.current = e.touches[0].clientY;
+  };
+
+  const handleTestTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartXRef.current === null || touchStartYRef.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartXRef.current;
+    const deltaY = e.changedTouches[0].clientY - touchStartYRef.current;
+
+    // Minimum swipe distance 45px and predominantly horizontal
+    if (Math.abs(deltaX) > 45 && Math.abs(deltaX) > Math.abs(deltaY) * 1.3) {
+      if (deltaX < 0) {
+        // Swiped right-to-left -> Next Question!
+        if (currentIdx < testQuestions.length - 1) {
+          setCurrentIdx((prev) => prev + 1);
+        }
+      } else {
+        // Swiped left-to-right -> Previous Question!
+        if (currentIdx > 0) {
+          setCurrentIdx((prev) => prev - 1);
+        }
+      }
+    }
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+  };
+
   const handlePageChange = (newPage: number) => {
     const target = Math.max(1, Math.min(totalPracticePages, newPage));
     setPracticePage(target);
@@ -348,15 +380,20 @@ export const ExamPrepView: React.FC = () => {
 
     return (
       <div
-        className={`flex flex-wrap items-center justify-between gap-3 p-3.5 sm:p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs ${
+        className={`flex flex-col sm:flex-row items-center justify-between gap-3 p-3 sm:p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs w-full max-w-full overflow-hidden ${
           position === 'top' ? 'mb-2' : 'mt-4'
         }`}
       >
         {/* Count info */}
-        <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
-          <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 font-black border border-slate-200">
+        <div className="flex items-center justify-between w-full sm:w-auto gap-2 text-xs font-bold text-slate-600">
+          <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 font-black border border-slate-200 truncate">
             {startItem} – {endItem} of {filteredGradeQuestions.length} Questions
           </span>
+          {practicePageSize > 0 && (
+            <span className="text-slate-500 font-bold text-xs shrink-0 sm:hidden">
+              Page {practicePage}/{totalPracticePages}
+            </span>
+          )}
           {practicePageSize > 0 && (
             <span className="text-slate-400 hidden sm:inline">
               (Page {practicePage} of {totalPracticePages})
@@ -366,12 +403,12 @@ export const ExamPrepView: React.FC = () => {
 
         {/* Page navigation controls */}
         {practicePageSize > 0 && totalPracticePages > 1 && (
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center justify-center gap-1 w-full sm:w-auto max-w-full overflow-x-auto py-1 scrollbar-none">
             <button
               onClick={() => handlePageChange(1)}
               disabled={practicePage === 1}
               title="First Page"
-              className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer text-slate-700"
+              className="p-1.5 sm:p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer text-slate-700 shrink-0"
             >
               <ChevronsLeft className="w-4 h-4" />
             </button>
@@ -379,17 +416,17 @@ export const ExamPrepView: React.FC = () => {
               onClick={() => handlePageChange(practicePage - 1)}
               disabled={practicePage === 1}
               title="Previous Page"
-              className="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer text-xs font-bold text-slate-700 flex items-center gap-1"
+              className="px-2 sm:px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer text-xs font-bold text-slate-700 flex items-center gap-1 shrink-0"
             >
               <ChevronLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Prev</span>
             </button>
 
             {/* Page number buttons */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               {Array.from({ length: totalPracticePages }, (_, i) => i + 1)
                 .filter((p) => {
-                  if (totalPracticePages <= 7) return true;
+                  if (totalPracticePages <= 5) return true;
                   if (p === 1 || p === totalPracticePages) return true;
                   return Math.abs(p - practicePage) <= 1;
                 })
@@ -399,10 +436,10 @@ export const ExamPrepView: React.FC = () => {
 
                   return (
                     <React.Fragment key={p}>
-                      {hasGap && <span className="text-xs text-slate-400 px-1">...</span>}
+                      {hasGap && <span className="text-xs text-slate-400 px-0.5">...</span>}
                       <button
                         onClick={() => handlePageChange(p)}
-                        className={`w-8 h-8 rounded-xl font-black text-xs transition cursor-pointer flex items-center justify-center border ${
+                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl font-black text-xs transition cursor-pointer flex items-center justify-center border shrink-0 ${
                           practicePage === p
                             ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
                             : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
@@ -419,7 +456,7 @@ export const ExamPrepView: React.FC = () => {
               onClick={() => handlePageChange(practicePage + 1)}
               disabled={practicePage === totalPracticePages}
               title="Next Page"
-              className="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer text-xs font-bold text-slate-700 flex items-center gap-1"
+              className="px-2 sm:px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer text-xs font-bold text-slate-700 flex items-center gap-1 shrink-0"
             >
               <span className="hidden sm:inline">Next</span>
               <ChevronRight className="w-4 h-4" />
@@ -428,7 +465,7 @@ export const ExamPrepView: React.FC = () => {
               onClick={() => handlePageChange(totalPracticePages)}
               disabled={practicePage === totalPracticePages}
               title="Last Page"
-              className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer text-slate-700"
+              className="p-1.5 sm:p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer text-slate-700 shrink-0"
             >
               <ChevronsRight className="w-4 h-4" />
             </button>
@@ -436,7 +473,7 @@ export const ExamPrepView: React.FC = () => {
         )}
 
         {/* Page size dropdown / buttons */}
-        <div className="flex items-center gap-1.5 text-xs">
+        <div className="flex items-center justify-center sm:justify-end gap-1.5 text-xs w-full sm:w-auto">
           <span className="text-slate-500 font-bold hidden sm:inline">Per page:</span>
           {[20, 50, 100, 0].map((size) => (
             <button
@@ -445,7 +482,7 @@ export const ExamPrepView: React.FC = () => {
                 setPracticePageSize(size);
                 setPracticePage(1);
               }}
-              className={`px-2 py-1 rounded-lg text-xs font-black border transition cursor-pointer ${
+              className={`px-2 py-1 rounded-lg text-xs font-black border transition cursor-pointer shrink-0 ${
                 practicePageSize === size
                   ? 'bg-slate-900 text-white border-slate-900'
                   : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200'
@@ -499,7 +536,7 @@ export const ExamPrepView: React.FC = () => {
   const unansweredCount = testQuestions.length - answeredCount;
 
   return (
-    <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-8 space-y-4 sm:space-y-6">
+    <div className="w-full max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-8 space-y-4 sm:space-y-6 overflow-x-hidden">
       {/* Header Banner - Adaptive for Junior (1-5) and Senior (6-11) */}
       <div
         className={`rounded-2xl sm:rounded-3xl p-4 sm:p-7 text-white shadow-lg border-b-6 sm:border-b-8 relative overflow-hidden transition-all duration-300 ${
@@ -576,28 +613,34 @@ export const ExamPrepView: React.FC = () => {
           </div>
 
           {/* Primary View Switcher: Mock Tests vs Question Search */}
-          <div className="grid grid-cols-2 gap-2 bg-slate-200/70 p-1.5 rounded-2xl border border-slate-300">
+          <div className="grid grid-cols-2 gap-1.5 sm:gap-2 bg-slate-200/70 p-1.5 rounded-2xl border border-slate-300 w-full max-w-full">
             <button
               onClick={() => setActiveTab('mock_tests')}
-              className={`py-2.5 sm:py-3 px-3 rounded-xl font-black text-xs sm:text-sm transition flex items-center justify-center space-x-2 ${
+              className={`py-2.5 sm:py-3 px-2 sm:px-3 rounded-xl font-black text-xs sm:text-sm transition flex items-center justify-center space-x-1 sm:space-x-2 truncate cursor-pointer ${
                 activeTab === 'mock_tests'
                   ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Play className="w-3.5 h-3.5 fill-current text-rose-600" />
-              <span>Mock Tests (Grade {selectedGradeFilter})</span>
+              <Play className="w-3.5 h-3.5 fill-current text-rose-600 shrink-0" />
+              <span className="truncate">
+                <span className="sm:hidden">Mock Tests (Gr {selectedGradeFilter})</span>
+                <span className="hidden sm:inline">Mock Tests (Grade {selectedGradeFilter})</span>
+              </span>
             </button>
             <button
               onClick={() => setActiveTab('search_questions')}
-              className={`py-2.5 sm:py-3 px-3 rounded-xl font-black text-xs sm:text-sm transition flex items-center justify-center space-x-2 ${
+              className={`py-2.5 sm:py-3 px-2 sm:px-3 rounded-xl font-black text-xs sm:text-sm transition flex items-center justify-center space-x-1 sm:space-x-2 truncate cursor-pointer ${
                 activeTab === 'search_questions'
                   ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Search className="w-3.5 h-3.5 text-blue-600" />
-              <span>Search Questions ({filteredGradeQuestions.length})</span>
+              <Search className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+              <span className="truncate">
+                <span className="sm:hidden">Search Qs ({filteredGradeQuestions.length})</span>
+                <span className="hidden sm:inline">Search Questions ({filteredGradeQuestions.length})</span>
+              </span>
             </button>
           </div>
 
@@ -1130,12 +1173,16 @@ export const ExamPrepView: React.FC = () => {
       {/* ================= 2. ACTIVE TEST RUNNING MODE ================= */}
       {testMode === 'running' && currentQ && (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Main Question Interface (3 Cols) */}
-          <div className="lg:col-span-3 bg-white p-5 sm:p-8 rounded-3xl border-4 border-[#FDA4AF] shadow-lg space-y-6 flex flex-col justify-between">
-            <div className="space-y-5">
+          {/* Main Question Interface (3 Cols) with touch swipe right-to-left navigation */}
+          <div
+            onTouchStart={handleTestTouchStart}
+            onTouchEnd={handleTestTouchEnd}
+            className="lg:col-span-3 bg-white p-4 sm:p-8 rounded-3xl border-4 border-[#FDA4AF] shadow-lg space-y-5 sm:space-y-6 flex flex-col justify-between overflow-hidden relative"
+          >
+            <div key={currentIdx} className="space-y-5 animate-in slide-in-from-right duration-200">
               {/* Top Navigation & Status Bar */}
               <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b-2 border-rose-100">
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 flex-wrap gap-y-1">
                   <span className="text-xs font-black text-[#E11D48] bg-[#FFF1F2] px-3.5 py-1.5 rounded-xl border border-[#FECDD3]">
                     Question {currentIdx + 1} of {testQuestions.length}
                   </span>
@@ -1144,6 +1191,9 @@ export const ExamPrepView: React.FC = () => {
                       {activeSubject.name} (Grade {selectedGradeFilter})
                     </span>
                   )}
+                  <span className="text-[10px] font-bold text-rose-600 sm:hidden bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-200 flex items-center gap-1">
+                    👈 Swipe for Next
+                  </span>
                 </div>
 
                 <div className="flex items-center space-x-2">
