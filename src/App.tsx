@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
+import { trackPageView } from './utils/analytics';
 import { Header } from './components/Header';
 import { MobileNavigation } from './components/MobileNavigation';
 import { MobileMenuDrawer } from './components/MobileMenuDrawer';
@@ -73,7 +74,12 @@ const MainContent: React.FC = () => {
 };
 
 const AppShell: React.FC = () => {
+  const { activeView } = useApp();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    trackPageView(`DESHNA AI - ${activeView}`, `/${activeView}`);
+  }, [activeView]);
 
   return (
     <div className="min-h-screen bg-[#FFFBEB] text-[#1F2937] flex flex-col font-sans antialiased selection:bg-[#FBBF24] selection:text-[#78350F] w-full max-w-full overflow-x-hidden relative">

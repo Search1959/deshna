@@ -158,20 +158,20 @@ export const StudentDashboard: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center space-x-2 shrink-0">
-          <button
-            onClick={() => openExamPrep('mock_tests', currentStudent.gradeId)}
-            className="px-4 py-2.5 bg-[#E11D48] hover:bg-[#BE123C] text-white font-black text-xs rounded-xl shadow-xs flex items-center space-x-2 transition"
-          >
-            <Play className="w-3.5 h-3.5 fill-white" />
-            <span>{isPrimary ? 'Play Grade Quiz' : 'Start Mock Exam (30 Qs)'}</span>
-          </button>
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <button
             onClick={() => openExamPrep('search_questions', currentStudent.gradeId)}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-xs flex items-center space-x-2 transition"
+            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md ring-2 ring-blue-300 flex items-center space-x-2 transition cursor-pointer"
           >
             <Search className="w-3.5 h-3.5" />
-            <span>Search Question Bank</span>
+            <span>🔍 Search Question Bank</span>
+          </button>
+          <button
+            onClick={() => openExamPrep('mock_tests', currentStudent.gradeId)}
+            className="px-4 py-2.5 bg-white hover:bg-rose-50 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 shadow-xs flex items-center space-x-2 transition cursor-pointer"
+          >
+            <Play className="w-3.5 h-3.5 fill-current" />
+            <span>{isPrimary ? 'Choose Quiz Tab' : 'Choose Mock Test Tab (30 Qs)'}</span>
           </button>
         </div>
       </div>

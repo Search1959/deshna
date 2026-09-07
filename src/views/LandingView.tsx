@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { OnboardingModal } from '../components/OnboardingModal';
+import { AdSenseBanner } from '../components/AdSenseBanner';
 import {
   Sparkles,
   Bot,
@@ -310,12 +311,62 @@ export const LandingView: React.FC = () => {
           </div>
         </div>
 
-        {/* 3. CARD 1: Grade-Adaptive Mock Tests & Quizzes */}
+        {/* 3. CARD 1: 🔍 FEATURED HIGHLIGHT - Search Grade Questions (Question Bank) */}
+        <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl border-3 border-blue-400 bg-gradient-to-br from-blue-500 via-indigo-600 to-blue-700 text-white shadow-lg space-y-3 sm:space-y-4 relative overflow-hidden">
+          <div className="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none" />
+          <div className="flex items-start justify-between gap-3 relative z-10">
+            <div className="space-y-1">
+              <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-yellow-300 text-blue-950 shadow-xs">
+                ⭐ Featured Highlight • Question Bank
+              </span>
+              <h2 className="font-black text-lg sm:text-xl text-white leading-tight flex items-center gap-2">
+                <Search className="w-5 h-5 text-yellow-300" />
+                <span>Search Grade {currentGrade} Questions</span>
+              </h2>
+              <p className="text-xs text-blue-100 font-medium leading-relaxed max-w-lg">
+                {isJunior
+                  ? 'Instantly find and solve practice problems with pictures, hints, and step-by-step answers!'
+                  : 'Search board exam questions, physics formulas, math equations, and detailed solutions.'}
+              </p>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-white/20 text-white flex items-center justify-center shrink-0 shadow-xs border border-white/30 backdrop-blur-xs">
+              <Search className="w-6 h-6 text-yellow-300" />
+            </div>
+          </div>
+
+          {/* Quick Topic Chips */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none text-[11px] relative z-10">
+            <span className="text-blue-200 font-bold shrink-0">Popular Topics:</span>
+            {(isJunior
+              ? ['Numbers', 'Shapes', 'Animals', 'Addition', 'Reading']
+              : ['Algebra', 'Photosynthesis', 'Gravitation', 'Chemical Reactions', 'Grammar']
+            ).map((term) => (
+              <button
+                key={term}
+                onClick={() => openExamPrep('search_questions', currentGrade)}
+                className="px-2.5 py-1 rounded-xl bg-white/20 hover:bg-white/35 text-white font-bold transition shrink-0 border border-white/25 cursor-pointer backdrop-blur-xs active:scale-95"
+              >
+                {term}
+              </button>
+            ))}
+          </div>
+
+          {/* Primary Action Button */}
+          <button
+            onClick={() => openExamPrep('search_questions', currentGrade)}
+            className="w-full py-3.5 bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-black text-xs sm:text-sm rounded-xl sm:rounded-2xl shadow-md flex items-center justify-center space-x-2 active:scale-95 transition min-h-[48px] cursor-pointer relative z-10"
+          >
+            <Search className="w-4 h-4 text-slate-950" />
+            <span>Search Question Bank (Grade {currentGrade})</span>
+          </button>
+        </div>
+
+        {/* 4. CARD 2: Grade-Adaptive Mock Tests & Quizzes (Student can choose mock test tab) */}
         <div
-          className={`p-4 rounded-2xl border-3 shadow-xs space-y-3 transition-all ${
+          className={`p-4 rounded-2xl border-2 shadow-xs space-y-3 transition-all ${
             isJunior
-              ? 'bg-gradient-to-br from-emerald-50 via-teal-50/40 to-white border-emerald-300'
-              : 'bg-gradient-to-br from-rose-50 via-pink-50/40 to-white border-rose-300'
+              ? 'bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 border-emerald-200'
+              : 'bg-gradient-to-br from-rose-50/70 via-white to-pink-50/40 border-rose-200'
           }`}
         >
           <div className="flex items-start justify-between gap-2">
@@ -327,41 +378,41 @@ export const LandingView: React.FC = () => {
                     : 'bg-rose-100 text-rose-800'
                 }`}
               >
-                {isJunior ? '🌱 Fun Quiz Zone' : '🎓 Board Exam Center'}
+                {isJunior ? '🌱 Practice Tests' : '🎓 Timed Mocks'}
               </span>
               <h2 className="font-black text-base text-slate-900 leading-tight">
                 {isJunior
-                  ? `🌱 Grade ${currentGrade} Quizzes & Practice`
-                  : `🎓 Grade ${currentGrade} 30-Question Mock Tests`}
+                  ? `Grade ${currentGrade} Quizzes & Practice Tests`
+                  : `Grade ${currentGrade} 30-Question Mock Exams`}
               </h2>
               <p className="text-xs text-slate-600 font-medium leading-relaxed">
                 {isJunior
-                  ? 'Interactive visual quizzes with audio explanations and instant star badges!'
-                  : 'Full-length 30-question timed practice papers with step-by-step solutions.'}
+                  ? 'Take an interactive quiz across subjects with instant feedback and stars.'
+                  : 'Full-length timed papers with real countdown timers and performance breakdown.'}
               </p>
             </div>
             <div
-              className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-xs ${
-                isJunior ? 'bg-emerald-600 text-white' : 'bg-[#E11D48] text-white'
+              className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-xs ${
+                isJunior ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-[#E11D48]'
               }`}
             >
-              <Zap className="w-6 h-6 fill-white" />
+              <Zap className="w-5 h-5 fill-current" />
             </div>
           </div>
 
           <button
             onClick={() => openExamPrep('mock_tests', currentGrade)}
-            className={`w-full py-3 text-white font-black text-xs rounded-xl shadow-md flex items-center justify-center space-x-2 active:scale-95 transition min-h-[46px] cursor-pointer ${
+            className={`w-full py-2.5 font-bold text-xs rounded-xl border-2 flex items-center justify-center space-x-2 active:scale-95 transition min-h-[42px] cursor-pointer ${
               isJunior
-                ? 'bg-emerald-600 hover:bg-emerald-700'
-                : 'bg-[#E11D48] hover:bg-[#BE123C]'
+                ? 'bg-white hover:bg-emerald-50 text-emerald-700 border-emerald-300'
+                : 'bg-white hover:bg-rose-50 text-rose-700 border-rose-300'
             }`}
           >
-            <Play className="w-4 h-4 fill-white" />
+            <Play className="w-3.5 h-3.5 fill-current" />
             <span>
               {isJunior
-                ? `Play Grade ${currentGrade} Quiz (${studentSubjects.length} Subjects)`
-                : `Start Grade ${currentGrade} Mock Exam (30 Qs)`}
+                ? `Choose Mock Test (Grade ${currentGrade})`
+                : `Choose Mock Test Tab (30 Qs)`}
             </span>
           </button>
         </div>
@@ -463,52 +514,6 @@ export const LandingView: React.FC = () => {
           </div>
         </div>
 
-        {/* 7. CARD 5: 🔍 Grade-Wise Question Search */}
-        <div className="p-4 rounded-2xl border-3 border-blue-200 bg-gradient-to-br from-blue-50 via-sky-50/40 to-white shadow-xs space-y-3">
-          <div className="flex items-start justify-between gap-2">
-            <div className="space-y-1">
-              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-blue-100 text-blue-800">
-                Instant Question Bank
-              </span>
-              <h2 className="font-black text-base text-slate-900 leading-tight">
-                🔍 Search Grade {currentGrade} Questions
-              </h2>
-              <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                {isJunior
-                  ? 'Search numbers, shapes, animals, and solve questions step-by-step!'
-                  : 'Search past board exam questions, physics formulas, and chemistry reactions.'}
-              </p>
-            </div>
-            <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-              <Search className="w-6 h-6" />
-            </div>
-          </div>
-
-          {/* Quick Topic Chips */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none text-[11px]">
-            <span className="text-slate-500 font-bold shrink-0">Topics:</span>
-            {(isJunior
-              ? ['Numbers', 'Shapes', 'Animals', 'Addition']
-              : ['Algebra', 'Photosynthesis', 'Gravitation', 'Reactions']
-            ).map((term) => (
-              <button
-                key={term}
-                onClick={() => openExamPrep('search_questions', currentGrade)}
-                className="px-2.5 py-1 rounded-lg bg-white border border-blue-200 text-blue-900 font-bold hover:bg-blue-100 transition shrink-0 cursor-pointer"
-              >
-                {term}
-              </button>
-            ))}
-          </div>
-
-          <button
-            onClick={() => openExamPrep('search_questions', currentGrade)}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md flex items-center justify-center space-x-2 active:scale-95 transition min-h-[46px] cursor-pointer"
-          >
-            <Search className="w-4 h-4" />
-            <span>Search Question Bank (Grade {currentGrade})</span>
-          </button>
-        </div>
 
         {/* 8. CARD 6: 🗂️ Explore Full Classes Catalog */}
         <button
@@ -1309,6 +1314,11 @@ export const LandingView: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Responsive Educational Advertisement Slot */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 my-6">
+        <AdSenseBanner format="auto" />
+      </div>
 
       {/* Footer */}
       <footer className="bg-[#1F2937] text-amber-100 py-12 border-t-8 border-[#F59E0B] text-xs">

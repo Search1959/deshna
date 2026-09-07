@@ -37,6 +37,8 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { getMockExamQuestionsForSubject } from '../data/curriculumData';
+import { AdSenseBanner } from '../components/AdSenseBanner';
+import { trackLearningActivity } from '../utils/analytics';
 import {
   isStudentAnswerCorrect,
   getCorrectAnswerDisplay,
@@ -69,8 +71,8 @@ export const ExamPrepView: React.FC = () => {
   const [questionCountChoice, setQuestionCountChoice] = useState<number>(30);
   const [isShuffleEnabled, setIsShuffleEnabled] = useState<boolean>(true);
 
-  // Tab State: Mock Tests vs Question Search
-  const [activeTab, setActiveTab] = useState<'mock_tests' | 'search_questions'>(() => examPrepInitialTab || 'mock_tests');
+  // Tab State: Search Questions vs Mock Tests (Search Questions 1st, Mock Tests 2nd)
+  const [activeTab, setActiveTab] = useState<'mock_tests' | 'search_questions'>(() => examPrepInitialTab || 'search_questions');
   const [questionSearchQuery, setQuestionSearchQuery] = useState<string>('');
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState<string>('all');
   const [selectedDifficultyFilter, setSelectedDifficultyFilter] = useState<string>('all');
@@ -233,6 +235,11 @@ export const ExamPrepView: React.FC = () => {
     setShowSubmitModal(false);
     setTestMode('results');
     awardPoints(150, 'Completed 30-Question Full Mock Test');
+    trackLearningActivity('mock_test', {
+      grade: selectedGradeFilter,
+      subject: activeSubject?.name,
+      totalQuestions: testQuestions.length,
+    });
     try {
       confetti({ particleCount: 80, spread: 80, origin: { y: 0.6 } });
     } catch {}
@@ -612,34 +619,37 @@ export const ExamPrepView: React.FC = () => {
             </div>
           </div>
 
-          {/* Primary View Switcher: Mock Tests vs Question Search */}
+          {/* Primary View Switcher: 1st Tab - Search Questions, 2nd Tab - Mock Tests */}
           <div className="grid grid-cols-2 gap-1.5 sm:gap-2 bg-slate-200/70 p-1.5 rounded-2xl border border-slate-300 w-full max-w-full">
-            <button
-              onClick={() => setActiveTab('mock_tests')}
-              className={`py-2.5 sm:py-3 px-2 sm:px-3 rounded-xl font-black text-xs sm:text-sm transition flex items-center justify-center space-x-1 sm:space-x-2 truncate cursor-pointer ${
-                activeTab === 'mock_tests'
-                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Play className="w-3.5 h-3.5 fill-current text-rose-600 shrink-0" />
-              <span className="truncate">
-                <span className="sm:hidden">Mock Tests (Gr {selectedGradeFilter})</span>
-                <span className="hidden sm:inline">Mock Tests (Grade {selectedGradeFilter})</span>
-              </span>
-            </button>
+            {/* 1st Tab: Search Questions */}
             <button
               onClick={() => setActiveTab('search_questions')}
               className={`py-2.5 sm:py-3 px-2 sm:px-3 rounded-xl font-black text-xs sm:text-sm transition flex items-center justify-center space-x-1 sm:space-x-2 truncate cursor-pointer ${
                 activeTab === 'search_questions'
-                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+                  ? 'bg-white text-blue-900 shadow-md border-2 border-blue-500 ring-2 ring-blue-400/25'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Search className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+              <Search className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'search_questions' ? 'text-blue-600' : 'text-slate-500'}`} />
               <span className="truncate">
                 <span className="sm:hidden">Search Qs ({filteredGradeQuestions.length})</span>
                 <span className="hidden sm:inline">Search Questions ({filteredGradeQuestions.length})</span>
+              </span>
+            </button>
+
+            {/* 2nd Tab: Mock Tests */}
+            <button
+              onClick={() => setActiveTab('mock_tests')}
+              className={`py-2.5 sm:py-3 px-2 sm:px-3 rounded-xl font-black text-xs sm:text-sm transition flex items-center justify-center space-x-1 sm:space-x-2 truncate cursor-pointer ${
+                activeTab === 'mock_tests'
+                  ? 'bg-white text-rose-900 shadow-md border-2 border-rose-500 ring-2 ring-rose-400/25'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Play className={`w-3.5 h-3.5 fill-current shrink-0 ${activeTab === 'mock_tests' ? 'text-rose-600' : 'text-slate-500'}`} />
+              <span className="truncate">
+                <span className="sm:hidden">Mock Tests (Gr {selectedGradeFilter})</span>
+                <span className="hidden sm:inline">Mock Tests (Grade {selectedGradeFilter})</span>
               </span>
             </button>
           </div>
@@ -1771,6 +1781,9 @@ export const ExamPrepView: React.FC = () => {
                 );
               })}
           </div>
+
+          {/* Google AdSense Slot in Mock Test Review */}
+          <AdSenseBanner className="max-w-2xl mx-auto my-3" />
 
           {/* Bottom Action Footer with Shuffle & Retake Controls */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t-2 border-emerald-100">

@@ -148,13 +148,61 @@ export const MobileStudentHub: React.FC = () => {
 
       {/* 3. Card-Based Main Action Cards Grid */}
       <div className="space-y-3.5">
-        {/* CARD 1: 📝 Mock Exam Center (Grade-Wise 30-Question Tests) */}
+        {/* CARD 1: 🔍 FEATURED HIGHLIGHT - Instant Question Search & Bank */}
+        {(activeFilter === 'all' || activeFilter === 'tests') && (
+          <div className="p-4 rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-indigo-700 text-white shadow-lg space-y-3 border-2 border-blue-400">
+            <div className="flex items-start justify-between gap-2">
+              <div className="space-y-1">
+                <span className="inline-block text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-yellow-300 text-blue-950 font-bold shadow-2xs">
+                  ⭐ Featured • Instant Question Bank
+                </span>
+                <h2 className="text-base font-black text-white leading-tight flex items-center gap-1.5">
+                  <Search className="w-4 h-4 text-yellow-300" />
+                  <span>Search Grade {currentGrade} Questions</span>
+                </h2>
+                <p className="text-xs text-blue-100 font-medium">
+                  Search any topic, chapter, or formula to get step-by-step explanations.
+                </p>
+              </div>
+              <div className="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center shrink-0 border border-white/30">
+                <Search className="w-5 h-5 text-yellow-300" />
+              </div>
+            </div>
+
+            {/* Quick Topic Chips */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none text-[11px]">
+              <span className="text-blue-200 font-bold shrink-0">Popular:</span>
+              {(isJunior
+                ? ['Numbers', 'Shapes', 'Animals', 'Spelling']
+                : ['Algebra', 'Light & Optics', 'Chemical Reactions', 'Grammar']
+              ).map((topic) => (
+                <button
+                  key={topic}
+                  onClick={() => openExamPrep('search_questions', currentGrade)}
+                  className="px-2.5 py-1 rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold transition shrink-0 border border-white/20 cursor-pointer"
+                >
+                  {topic}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => openExamPrep('search_questions', currentGrade)}
+              className="w-full py-3 bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-black text-xs sm:text-sm rounded-2xl shadow-sm flex items-center justify-center space-x-2 active:scale-95 transition min-h-[46px] cursor-pointer"
+            >
+              <Search className="w-4 h-4 text-slate-950" />
+              <span>Search Question Bank (Grade {currentGrade})</span>
+            </button>
+          </div>
+        )}
+
+        {/* CARD 2: 📝 Mock Exam Center (Student can choose mock test tab) */}
         {(activeFilter === 'all' || activeFilter === 'tests') && (
           <div className="p-4 rounded-3xl bg-gradient-to-br from-rose-500 via-rose-600 to-pink-600 text-white shadow-md space-y-3 border-2 border-rose-400">
             <div className="flex items-start justify-between gap-2">
               <div className="space-y-1">
                 <span className="inline-block text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-white/20 text-rose-100 border border-white/30 backdrop-blur-xs">
-                  {isJunior ? 'Fun Quiz Zone' : 'Official Board Format'}
+                  {isJunior ? 'Fun Quiz Zone' : 'Timed Practice Papers'}
                 </span>
                 <h2 className="text-base font-black text-white leading-tight flex items-center gap-1.5">
                   <Zap className="w-4 h-4 fill-amber-300 text-amber-300" />
@@ -178,8 +226,8 @@ export const MobileStudentHub: React.FC = () => {
               <Play className="w-4 h-4 fill-rose-700" />
               <span>
                 {isJunior
-                  ? `Start Grade ${currentGrade} Quiz (${studentSubjects.length} Subjects)`
-                  : `Launch Grade ${currentGrade} Mock Exam (30 Qs)`}
+                  ? `Choose Quiz Tab (${studentSubjects.length} Subjects)`
+                  : `Choose Mock Test Tab (30 Qs)`}
               </span>
             </button>
           </div>
@@ -216,53 +264,6 @@ export const MobileStudentHub: React.FC = () => {
           </div>
         )}
 
-        {/* CARD 3: 🔍 Instant Question Search & Bank */}
-        {(activeFilter === 'all' || activeFilter === 'tests') && (
-          <div className="p-4 rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-indigo-700 text-white shadow-md space-y-3 border-2 border-blue-400">
-            <div className="flex items-start justify-between gap-2">
-              <div className="space-y-1">
-                <span className="inline-block text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-white/20 text-blue-100 border border-white/30 backdrop-blur-xs">
-                  Instant Solutions
-                </span>
-                <h2 className="text-base font-black text-white leading-tight flex items-center gap-1.5">
-                  <Search className="w-4 h-4 text-blue-200" />
-                  <span>Search Grade {currentGrade} Questions</span>
-                </h2>
-                <p className="text-xs text-blue-100 font-medium">
-                  Search any topic, chapter, or formula to get step-by-step explanations.
-                </p>
-              </div>
-              <div className="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center shrink-0 border border-white/30">
-                <Search className="w-5 h-5 text-white" />
-              </div>
-            </div>
-
-            {/* Quick Topic Chips */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none text-[11px]">
-              <span className="text-blue-200 font-bold shrink-0">Popular:</span>
-              {(isJunior
-                ? ['Numbers', 'Shapes', 'Animals', 'Spelling']
-                : ['Algebra', 'Light & Optics', 'Chemical Reactions', 'Grammar']
-              ).map((topic) => (
-                <button
-                  key={topic}
-                  onClick={() => openExamPrep('search_questions', currentGrade)}
-                  className="px-2.5 py-1 rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold transition shrink-0 border border-white/20 cursor-pointer"
-                >
-                  {topic}
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={() => openExamPrep('search_questions', currentGrade)}
-              className="w-full py-3 bg-white hover:bg-blue-50 text-blue-700 font-black text-xs sm:text-sm rounded-2xl shadow-sm flex items-center justify-center space-x-2 active:scale-95 transition min-h-[46px] cursor-pointer"
-            >
-              <Search className="w-4 h-4 text-blue-700" />
-              <span>Search Question Bank (Grade {currentGrade})</span>
-            </button>
-          </div>
-        )}
 
         {/* CARD 4: 📚 My Subjects Grid */}
         {(activeFilter === 'all' || activeFilter === 'subjects') && (

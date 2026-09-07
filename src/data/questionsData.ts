@@ -1,5 +1,5 @@
 import { Question, Chapter, Subject } from '../types';
-import { ALL_CHAPTERS } from './chaptersData';
+import { ALL_CHAPTERS, generateDefaultChaptersForSubject } from './chaptersData';
 import { ALL_SUBJECTS } from './subjectsData';
 import { ALL_TOPICS } from './topicsData';
 import { generateCurriculumQuestionsForChapter, balanceQuestionOptions } from './curriculumGenerator';
@@ -610,7 +610,7 @@ export const BESPOKE_PRESEEDED_QUESTIONS: Question[] = [
  */
 export function normalizeSubjectKey(subjectId: string): string {
   if (!subjectId) return '';
-  return subjectId.replace(/^(cbse|icse|wbbse|state|cam|isc|wb|sb|intl|ib)-/i, '').toLowerCase();
+  return subjectId.replace(/^(cbse|icse|wbbse|state|cam|isc|wb|sb|intl|ib|st)-/i, '').toLowerCase();
 }
 
 /**
@@ -759,9 +759,18 @@ export function getMockExamQuestionsForSubject(
 
   // Identify all curriculum chapters for this subject
   const allChaptersList = customChapters || ALL_CHAPTERS;
-  const subjectChapters = allChaptersList.filter((c) =>
+  let subjectChapters = allChaptersList.filter((c) =>
     isMatchingSubject(c.subjectId, c.gradeId)
   );
+
+  if (subjectChapters.length === 0) {
+    subjectChapters = generateDefaultChaptersForSubject(
+      subjectId,
+      customSubject?.name || normTarget.toUpperCase(),
+      gradeId,
+      customSubject?.boardId || 'cbse'
+    );
+  }
 
   // If pool has fewer than targetCount, generate dynamically from subject chapters
   if (subjectQuestions.length < targetCount && subjectChapters.length > 0) {
@@ -1102,6 +1111,413 @@ export function getMockExamQuestionsForSubject(
             explanation: `Formal writing requires clarity, courteous tone, organized paragraphs, and conventional layout.`,
             hints: ['Formal letters maintain polite language and clear organization.'],
             stepByStepSolution: ['Plan greeting, clear body paragraphs with purpose, and formal closure.'],
+            status: 'published',
+          };
+        }
+      } else if (
+        targetCode.includes('comp') ||
+        targetCode.includes('cs') ||
+        targetCode.includes('it') ||
+        targetCode.includes('code') ||
+        targetCode.includes('ai') ||
+        targetCode.includes('ict') ||
+        targetCode.includes('dt')
+      ) {
+        // Computer Science & Technology
+        const pattern = step % 4;
+        if (pattern === 0) {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'easy',
+            text: `[Hardware & Systems #${qNum}] In "${chap.title}": Which primary hardware component executes instructions and performs logical computations?`,
+            options: [
+              `Central Processing Unit (CPU)`,
+              `Power Cable Socket`,
+              `Plastic Keyboard Cover`,
+              `Empty CD Tray`,
+            ],
+            correctAnswer: 0,
+            explanation: `The CPU interprets instructions, handles calculations, and coordinates computer components.`,
+            hints: ['Known as the brain of the computer.'],
+            stepByStepSolution: ['CPU executes all arithmetic, logical, and control instructions.'],
+            status: 'published',
+          };
+        } else if (pattern === 1) {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'easy',
+            text: `[Cyber Safety #${qNum}] In "${chap.title}": What is the safest practice when managing your personal student account online?`,
+            options: [
+              `Use strong, distinct passwords with two-factor authentication and never share your credentials`,
+              `Post your account password in the public chat box`,
+              `Click strange unsolicited download links sent by anonymous emails`,
+              `Turn off all system virus protection and firewall alerts`,
+            ],
+            correctAnswer: 0,
+            explanation: `Keeping passwords confidential and activating two-factor authentication protects digital accounts from security breaches.`,
+            hints: ['Never share passwords with anyone.'],
+            stepByStepSolution: ['Safe browsing requires secret passwords and cautious link verification.'],
+            status: 'published',
+          };
+        } else if (pattern === 2) {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'medium',
+            text: `[Algorithmic Logic #${qNum}] In "${chap.title}": What constitutes an "Algorithm" in computing?`,
+            options: [
+              `A step-by-step, finite sequence of unambiguous instructions designed to solve a problem`,
+              `A physical monitor power switch`,
+              `A type of printed paper sticker`,
+              `A permanent error that ruins the hardware forever`,
+            ],
+            correctAnswer: 0,
+            explanation: `An algorithm is a clear, finite sequence of logical steps executed to produce a defined solution.`,
+            hints: ['Think of a step-by-step cooking recipe.'],
+            stepByStepSolution: ['Clear input -> logical sequential steps -> defined output.'],
+            status: 'published',
+          };
+        } else {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'medium',
+            text: `[Software & Coding #${qNum}] In "${chap.title}": What is the primary purpose of debugging code during development?`,
+            options: [
+              `Identifying, isolating, and fixing syntax or logic errors so programs execute correctly`,
+              `Changing the color of the computer desk`,
+              `Increasing speaker volume without testing`,
+              `Erasing all written files without saving`,
+            ],
+            correctAnswer: 0,
+            explanation: `Debugging is the methodical process of locating and correcting bugs in program code.`,
+            hints: ['Finding and fixing mistakes in code.'],
+            stepByStepSolution: ['Run code -> identify bugs -> repair logic -> test again.'],
+            status: 'published',
+          };
+        }
+      } else if (
+        targetCode.includes('gk') ||
+        targetCode.includes('gen') ||
+        targetCode.includes('quiz')
+      ) {
+        // General Knowledge & Current Awareness
+        const pattern = step % 4;
+        if (pattern === 0) {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'easy',
+            text: `[Global Awareness #${qNum}] In "${chap.title}": Which planet in our solar system is known as the "Blue Planet" due to its abundant surface water?`,
+            options: [
+              `Earth`,
+              `Mars (the Red Planet)`,
+              `Jupiter`,
+              `Venus`,
+            ],
+            correctAnswer: 0,
+            explanation: `Earth is called the Blue Planet because oceans cover approximately 71% of its surface area.`,
+            hints: ['The planet where we live!'],
+            stepByStepSolution: ['Earth has 71% water coverage visible from space as blue.'],
+            status: 'published',
+          };
+        } else if (pattern === 1) {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'easy',
+            text: `[National Symbols #${qNum}] In "${chap.title}": What does the blue Ashoka Chakra in the center of the Indian National Flag represent?`,
+            options: [
+              `The eternal Wheel of Law, righteousness (Dharma), and continuous progress with 24 spokes`,
+              `A symbol of rain clouds`,
+              `A picture of a solar eclipse`,
+              `A mark indicating the manufacturer`,
+            ],
+            correctAnswer: 0,
+            explanation: `The Ashoka Chakra depicts the wheel of the law of dharma, featuring 24 spokes representing 24 hours of virtuous endeavor.`,
+            hints: ['Represents dharma and constant righteous progress.'],
+            stepByStepSolution: ['24 spokes symbolize 24 hours of ceaseless righteous effort.'],
+            status: 'published',
+          };
+        } else if (pattern === 1) {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'medium',
+            text: `[Scientific Wonders #${qNum}] In "${chap.title}": Which gas do green plants absorb from the air during photosynthesis to produce oxygen?`,
+            options: [
+              `Carbon Dioxide (CO2)`,
+              `Pure Helium`,
+              `Argon gas`,
+              `Nitrogen monoxide`,
+            ],
+            correctAnswer: 0,
+            explanation: `Plants absorb carbon dioxide and water using sunlight and chlorophyll to produce glucose and oxygen.`,
+            hints: ['Absorbed by leaves from the air.'],
+            stepByStepSolution: ['Plants take in CO2 and release O2 during sunlight hours.'],
+            status: 'published',
+          };
+        } else {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'medium',
+            text: `[Inventions & Discoveries #${qNum}] In "${chap.title}": Who is widely recognized for discovering the law of universal gravitation after observing a falling apple?`,
+            options: [
+              `Sir Isaac Newton`,
+              `Thomas Edison`,
+              `Alexander Graham Bell`,
+              `Guglielmo Marconi`,
+            ],
+            correctAnswer: 0,
+            explanation: `Sir Isaac Newton formulated the laws of motion and universal gravitation in 1687.`,
+            hints: ['Famous British physicist associated with the apple tree anecdote.'],
+            stepByStepSolution: ['Newton formulated gravitational principles that explain planetary orbits.'],
+            status: 'published',
+          };
+        }
+      } else if (
+        targetCode.includes('art') ||
+        targetCode.includes('craft') ||
+        targetCode.includes('music') ||
+        targetCode.includes('draw')
+      ) {
+        // Art, Music & Creative Expression
+        const pattern = step % 4;
+        if (pattern === 0) {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'easy',
+            text: `[Color Theory #${qNum}] In "${chap.title}": Which trio constitutes the three foundational PRIMARY colors that cannot be created by mixing other colors?`,
+            options: [
+              `Red, Yellow, and Blue`,
+              `Green, Orange, and Purple`,
+              `Black, Gray, and White`,
+              `Brown, Pink, and Turquoise`,
+            ],
+            correctAnswer: 0,
+            explanation: `Red, Yellow, and Blue are primary colors in traditional pigment color theory from which secondary colors are mixed.`,
+            hints: ['The basic colors used to mix orange, green, and purple.'],
+            stepByStepSolution: ['Primary colors are Red, Yellow, Blue. Secondary colors are formed by mixing pairs of primaries.'],
+            status: 'published',
+          };
+        } else if (pattern === 1) {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'easy',
+            text: `[Artistic Technique #${qNum}] In "${chap.title}": What visual dimension does adding shadows and highlights give to a two-dimensional drawing?`,
+            options: [
+              `Creates the illusion of depth, volume, and realistic 3D form`,
+              `Makes the paper disappear`,
+              `Erases all drawn shapes immediately`,
+              `Flattens the artwork into a single line`,
+            ],
+            correctAnswer: 0,
+            explanation: `Chiaroscuro (shading and highlights) transforms flat shapes into three-dimensional forms with depth and realistic lighting.`,
+            hints: ['Shading adds depth and form.'],
+            stepByStepSolution: ['Light values on highlights and dark values in shadows simulate spatial depth.'],
+            status: 'published',
+          };
+        } else if (pattern === 2) {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'medium',
+            text: `[Musical Elements #${qNum}] In "${chap.title}": What term describes the steady pulse or recurring heartbeat of a musical composition?`,
+            options: [
+              `The Beat or Tempo`,
+              `The Music Stand`,
+              `The Instrument Case`,
+              `The Stage Curtain`,
+            ],
+            correctAnswer: 0,
+            explanation: `The beat is the foundational rhythmic unit of time in music, regulated in speed by the tempo.`,
+            hints: ['Like your heartbeat tapping steadily.'],
+            stepByStepSolution: ['Rhythm is built upon a steady recurring pulse called the beat.'],
+            status: 'published',
+          };
+        } else {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'medium',
+            text: `[Indian Traditional Art #${qNum}] In "${chap.title}": Which ancient Indian folk art form uses geometric patterns, nature motifs, and natural dyes on handmade paper or mud walls?`,
+            options: [
+              `Madhubani (Mithila) Art`,
+              `Digital Pixel Art`,
+              `Neon Spray Graffiti`,
+              `Laser Engraving`,
+            ],
+            correctAnswer: 0,
+            explanation: `Madhubani painting from Bihar features intricate natural motifs, line drawings, and vibrant organic pigments.`,
+            hints: ['Originated in the Mithila region of Bihar.'],
+            stepByStepSolution: ['Madhubani art celebrates nature, mythological deities, and rural celebrations.'],
+            status: 'published',
+          };
+        }
+      } else if (
+        targetCode.includes('pe') ||
+        targetCode.includes('fit') ||
+        targetCode.includes('yoga') ||
+        targetCode.includes('sport') ||
+        targetCode.includes('health')
+      ) {
+        // Physical Education & Health
+        const pattern = step % 4;
+        if (pattern === 0) {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'easy',
+            text: `[Fitness & Safety #${qNum}] In "${chap.title}": Why is doing a dynamic warm-up essential before playing sports or running?`,
+            options: [
+              `It gradually increases heart rate, warms muscles, and prevents injuries like muscle strains`,
+              `It helps you fall asleep faster on the track`,
+              `It makes running completely impossible`,
+              `It replaces the need to drink water entirely`,
+            ],
+            correctAnswer: 0,
+            explanation: `Warm-ups prepare muscles, joints, and the cardiovascular system for vigorous exercise, substantially reducing injury risk.`,
+            hints: ['Warming up prepares the body and prevents pulled muscles.'],
+            stepByStepSolution: ['Gentle movement -> increased blood flow -> flexible muscles -> safer workout.'],
+            status: 'published',
+          };
+        } else if (pattern === 1) {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'easy',
+            text: `[Sportsmanship #${qNum}] In "${chap.title}": What embodies genuine "Good Sportsmanship" during an athletic match?`,
+            options: [
+              `Playing fairly by the rules, respecting teammates, opponents, and referees, and accepting outcomes gracefully`,
+              `Arguing disrespectfully with every referee decision`,
+              `Cheating when nobody is looking`,
+              `Refusing to shake hands after the game concludes`,
+            ],
+            correctAnswer: 0,
+            explanation: `Sportsmanship values fairness, mutual respect, humility in victory, and dignity in defeat.`,
+            hints: ['Respect, fair play, and ethical conduct.'],
+            stepByStepSolution: ['Fair play builds character, teamwork, and positive athletic community.'],
+            status: 'published',
+          };
+        } else if (pattern === 2) {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'medium',
+            text: `[Yoga & Mindfulness #${qNum}] In "${chap.title}": What is the practice of conscious breath control called in traditional Yoga?`,
+            options: [
+              `Pranayama`,
+              `Sprint Interval`,
+              `Weightlifting`,
+              `Speed Skating`,
+            ],
+            correctAnswer: 0,
+            explanation: `Pranayama involves conscious regulation of inhalation, retention, and exhalation to enhance mental calm and vitality.`,
+            hints: ['Prana means life-force or breath.'],
+            stepByStepSolution: ['Pranayama balances the nervous system and enhances focus.'],
+            status: 'published',
+          };
+        } else {
+          newQ = {
+            id: `q-mock-${subjectId}-${qNum}`,
+            topicId: `top-mock-${subjectId}-${step}`,
+            chapterId: chap.id,
+            subjectId,
+            gradeId,
+            boardId: 'cbse',
+            questionType: 'mcq',
+            difficulty: 'medium',
+            text: `[Nutrition & Hydration #${qNum}] In "${chap.title}": Why is staying adequately hydrated with water vital during physical workouts?`,
+            options: [
+              `Water regulates body temperature through sweat and prevents dangerous dehydration and cramping`,
+              `Water makes your running shoes heavier`,
+              `Water stops your muscles from receiving oxygen`,
+              `Water should only be consumed once a month`,
+            ],
+            correctAnswer: 0,
+            explanation: `Hydration maintains blood volume, cools the body via sweat, and lubricates joints during athletic activities.`,
+            hints: ['Drinking clean water prevents overheating and dehydration.'],
+            stepByStepSolution: ['Fluid replacement sustains stamina and thermoregulation.'],
             status: 'published',
           };
         }

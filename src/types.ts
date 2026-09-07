@@ -465,3 +465,12 @@ export interface PlatformAnalytics {
   gradeDistribution: Record<number, number>;
   popularSubjects: { subject: string; learners: number; avgMastery: number }[];
 }
+
+declare global {
+  interface Window {
+    dataLayer?: any[];
+    gtag?: (...args: any[]) => void;
+    adsbygoogle?: any[];
+  }
+}
+

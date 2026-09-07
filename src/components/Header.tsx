@@ -20,6 +20,7 @@ import {
   RotateCcw,
   Clock,
   Compass,
+  Search,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -39,6 +40,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
     grades,
     openAITutorWithContext,
     openHelpModal,
+    openExamPrep,
     isSpeaking,
     stopSpeaking,
     speakText,
@@ -137,12 +139,12 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
     },
     {
       id: 'exam_prep',
-      name: t('exam_prep', 'Mock Exam Prep & Tests'),
-      shortName: 'Exam Prep',
-      icon: Clock,
-      desc: 'Timed board papers, time trials & mocks',
-      badge: 'Tests',
-      color: 'text-emerald-700 bg-emerald-100/80 border-emerald-300',
+      name: t('exam_prep', 'Search Questions & Mock Tests'),
+      shortName: 'Search Qs',
+      icon: Search,
+      desc: 'Instant question bank, formulas & practice papers',
+      badge: 'Bank',
+      color: 'text-blue-700 bg-blue-100/80 border-blue-300',
     },
   ];
 
@@ -225,14 +227,15 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
 
               <button
                 id="header-quick-exam-btn"
-                onClick={() => setActiveView('exam_prep')}
-                className={`px-3 py-1.5 text-xs font-black rounded-xl transition whitespace-nowrap cursor-pointer border-2 ${
+                onClick={() => openExamPrep('search_questions', selectedGradeId)}
+                className={`px-3 py-1.5 text-xs font-black rounded-xl transition whitespace-nowrap cursor-pointer border-2 flex items-center space-x-1.5 ${
                   activeView === 'exam_prep'
                     ? 'bg-amber-400 text-slate-900 border-amber-500 shadow-xs'
                     : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-200'
                 }`}
               >
-                {t('exam_prep', 'Exam Prep')}
+                <Search className="w-3.5 h-3.5" />
+                <span>{t('search_questions', 'Search Questions')}</span>
               </button>
 
               {/* Study Modules Dropdown Trigger */}

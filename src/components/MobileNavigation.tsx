@@ -50,18 +50,18 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({ onOpenMobile
           <span className="text-[10px] tracking-tight">{t('study_mode', 'Study')}</span>
         </button>
 
-        {/* 2. Mock Tests (Grade-Wise) */}
+        {/* 2. Search Questions (Grade-Wise) */}
         <button
-          id="mobile-nav-mocks"
-          onClick={() => openExamPrep('mock_tests', targetGrade)}
+          id="mobile-nav-search-questions"
+          onClick={() => openExamPrep('search_questions', targetGrade)}
           className={`flex flex-col items-center justify-center py-1 px-1 rounded-xl transition min-h-[46px] ${
-            activeView === 'exam_prep' && examPrepInitialTab !== 'search_questions'
-              ? 'text-rose-700 font-black bg-rose-50'
+            activeView === 'exam_prep' && examPrepInitialTab === 'search_questions'
+              ? 'text-blue-700 font-black bg-blue-50'
               : 'text-slate-600 hover:text-slate-900 font-bold'
           }`}
         >
-          <Zap className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px] tracking-tight">Mock Tests</span>
+          <Search className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] tracking-tight">Search Qs</span>
         </button>
 
         {/* 3. Central AI Tutor Highlight Action */}
@@ -86,18 +86,18 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({ onOpenMobile
           </button>
         </div>
 
-        {/* 4. Search Questions (Grade-Wise) */}
+        {/* 4. Mock Tests (Grade-Wise) - Student can choose mock test tab */}
         <button
-          id="mobile-nav-search-questions"
-          onClick={() => openExamPrep('search_questions', targetGrade)}
+          id="mobile-nav-mocks"
+          onClick={() => openExamPrep('mock_tests', targetGrade)}
           className={`flex flex-col items-center justify-center py-1 px-1 rounded-xl transition min-h-[46px] ${
-            activeView === 'exam_prep' && examPrepInitialTab === 'search_questions'
-              ? 'text-blue-700 font-black bg-blue-50'
+            activeView === 'exam_prep' && examPrepInitialTab !== 'search_questions'
+              ? 'text-rose-700 font-black bg-rose-50'
               : 'text-slate-600 hover:text-slate-900 font-bold'
           }`}
         >
-          <Search className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px] tracking-tight">Search Qs</span>
+          <Zap className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] tracking-tight">Mock Tests</span>
         </button>
 
         {/* 5. Menu Trigger */}

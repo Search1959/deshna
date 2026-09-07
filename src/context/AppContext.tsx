@@ -299,10 +299,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
-  // Exam Prep & Question Search Tab State
-  const [examPrepInitialTab, setExamPrepInitialTab] = useState<'mock_tests' | 'search_questions'>('mock_tests');
+  // Exam Prep & Question Search Tab State (1st Tab: Search Questions, 2nd Tab: Mock Tests)
+  const [examPrepInitialTab, setExamPrepInitialTab] = useState<'mock_tests' | 'search_questions'>('search_questions');
 
-  const openExamPrep = (tab: 'mock_tests' | 'search_questions' = 'mock_tests', gradeId?: number) => {
+  const openExamPrep = (tab: 'mock_tests' | 'search_questions' = 'search_questions', gradeId?: number) => {
     if (gradeId && typeof gradeId === 'number') {
       setSelectedGradeId(gradeId);
     }
@@ -895,8 +895,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [subjectMappings, setSubjectMappings] = useState<SubjectMapping[]>(() => {
     try {
-      const saved = localStorage.getItem('eduvate_mappings_v2');
-      return saved ? JSON.parse(saved) : DEFAULT_SUBJECT_MAPPINGS;
+      const saved = localStorage.getItem('eduvate_mappings_v4');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length >= DEFAULT_SUBJECT_MAPPINGS.length) {
+          return parsed;
+        }
+      }
+      return DEFAULT_SUBJECT_MAPPINGS;
     } catch {
       return DEFAULT_SUBJECT_MAPPINGS;
     }
@@ -904,8 +910,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [subjects, setSubjects] = useState<Subject[]>(() => {
     try {
-      const saved = localStorage.getItem('eduvate_subjects_v2');
-      return saved ? JSON.parse(saved) : INITIAL_SUBJECTS;
+      const saved = localStorage.getItem('eduvate_subjects_v4');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length >= INITIAL_SUBJECTS.length) {
+          return parsed;
+        }
+      }
+      return INITIAL_SUBJECTS;
     } catch {
       return INITIAL_SUBJECTS;
     }
@@ -913,8 +925,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [chapters, setChapters] = useState<Chapter[]>(() => {
     try {
-      const saved = localStorage.getItem('eduvate_chapters_v2');
-      return saved ? JSON.parse(saved) : INITIAL_CHAPTERS;
+      const saved = localStorage.getItem('eduvate_chapters_v4');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length >= INITIAL_CHAPTERS.length) {
+          return parsed;
+        }
+      }
+      return INITIAL_CHAPTERS;
     } catch {
       return INITIAL_CHAPTERS;
     }
@@ -937,9 +955,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.setItem('eduvate_grades', JSON.stringify(grades));
       localStorage.setItem('eduvate_categories', JSON.stringify(categories));
       localStorage.setItem('eduvate_streams', JSON.stringify(streams));
-      localStorage.setItem('eduvate_mappings_v2', JSON.stringify(subjectMappings));
-      localStorage.setItem('eduvate_subjects_v2', JSON.stringify(subjects));
-      localStorage.setItem('eduvate_chapters_v2', JSON.stringify(chapters));
+      localStorage.setItem('eduvate_mappings_v4', JSON.stringify(subjectMappings));
+      localStorage.setItem('eduvate_subjects_v4', JSON.stringify(subjects));
+      localStorage.setItem('eduvate_chapters_v4', JSON.stringify(chapters));
     } catch (e) {
       console.warn('Storage sync error', e);
     }
@@ -1375,6 +1393,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.removeItem('eduvate_mappings');
     localStorage.removeItem('eduvate_subjects');
     localStorage.removeItem('eduvate_chapters');
+    localStorage.removeItem('eduvate_mappings_v2');
+    localStorage.removeItem('eduvate_subjects_v2');
+    localStorage.removeItem('eduvate_chapters_v2');
+    localStorage.removeItem('eduvate_mappings_v3');
+    localStorage.removeItem('eduvate_subjects_v3');
+    localStorage.removeItem('eduvate_chapters_v3');
+    localStorage.removeItem('eduvate_mappings_v4');
+    localStorage.removeItem('eduvate_subjects_v4');
+    localStorage.removeItem('eduvate_chapters_v4');
     setBoards(BOARDS);
     setGrades(GRADES);
     setCategories(MASTER_CATEGORIES);
